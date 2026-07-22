@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 
 interface CourseSummary {
@@ -36,23 +36,55 @@ function statusHref(course: CourseSummary): string {
 
 export default function CoursesPage() {
   const [courses, setCourses] = useState<CourseSummary[] | null>(null);
+  const [stoppingAll, setStoppingAll] = useState(false);
+
+  const loadCourses = useCallback(async () => {
+    const res = await fetch("/api/courses");
+    const data = await res.json();
+    setCourses(data.courses ?? []);
+  }, []);
 
   useEffect(() => {
-    fetch("/api/courses")
-      .then((res) => res.json())
-      .then((data) => setCourses(data.courses ?? []));
-  }, []);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fire-and-forget fetch on mount, setState happens after the async gap
+    loadCourses();
+  }, [loadCourses]);
+
+  const generatingCount = courses?.filter((c) => c.status === "generating").length ?? 0;
+
+  async function handleStopAll() {
+    if (!confirm("Stop generation for every course currently generating? This affects all users.")) {
+      return;
+    }
+    setStoppingAll(true);
+    try {
+      await fetch("/api/courses/generation/stop-all", { method: "POST" });
+      await loadCourses();
+    } finally {
+      setStoppingAll(false);
+    }
+  }
 
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Courses</h1>
-        <Link
-          href="/courses/new"
-          className="rounded-md bg-foreground px-4 py-2 text-sm text-background"
-        >
-          New course
-        </Link>
+        <div className="flex gap-3">
+          {generatingCount > 0 && (
+            <button
+              onClick={handleStopAll}
+              disabled={stoppingAll}
+              className="rounded-md border border-red-300 px-4 py-2 text-sm text-red-600 disabled:opacity-50"
+            >
+              {stoppingAll ? "Stopping…" : `Stop all generation (${generatingCount})`}
+            </button>
+          )}
+          <Link
+            href="/courses/new"
+            className="rounded-md bg-foreground px-4 py-2 text-sm text-background"
+          >
+            New course
+          </Link>
+        </div>
       </div>
 
       {courses === null && <p className="text-zinc-500">Loading…</p>}

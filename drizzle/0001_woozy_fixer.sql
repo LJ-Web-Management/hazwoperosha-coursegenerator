@@ -1,0 +1,2 @@
+ALTER TABLE "generation_locks" DROP CONSTRAINT "generation_locks_id_check";--> statement-breakpoint
+ALTER TABLE "generation_locks" ADD CONSTRAINT "generation_locks_id_check" CHECK ("generation_locks"."id" between 1 and 3);

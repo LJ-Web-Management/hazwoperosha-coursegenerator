@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { eq, and, inArray, sql as drizzleSql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { courses, slides } from "@/lib/db/schema";
-import { claimLock, LockHeldError } from "@/lib/lock";
+import { claimLock, LockHeldError, MAX_CONCURRENT_COURSES } from "@/lib/lock";
 
 export const runtime = "nodejs";
 
@@ -29,16 +29,19 @@ export async function POST(
     claim = await claimLock(courseId);
   } catch (err) {
     if (err instanceof LockHeldError) {
-      let heldByName: string | null = null;
-      if (err.heldByCourseId) {
-        const [held] = await db
+      let heldByNames: string[] = [];
+      if (err.heldByCourseIds.length > 0) {
+        const held = await db
           .select({ name: courses.name })
           .from(courses)
-          .where(eq(courses.id, err.heldByCourseId));
-        heldByName = held?.name ?? null;
+          .where(inArray(courses.id, err.heldByCourseIds));
+        heldByNames = held.map((h) => h.name);
       }
       return NextResponse.json(
-        { error: "Another course is currently generating", heldByCourseName: heldByName },
+        {
+          error: `All ${MAX_CONCURRENT_COURSES} generation slots are in use. Try again shortly.`,
+          heldByCourseNames: heldByNames,
+        },
         { status: 409 },
       );
     }

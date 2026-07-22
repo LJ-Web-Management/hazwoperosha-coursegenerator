@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { eq, and, inArray, asc, sql as drizzleSql } from "drizzle-orm";
+import { eq, and, inArray, sql as drizzleSql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { courses, slides } from "@/lib/db/schema";
 import { renewLock } from "@/lib/lock";
@@ -10,6 +10,16 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 const MAX_ATTEMPTS = 3;
+const STALE_IN_PROGRESS_MINUTES = 3;
+
+interface RawSlideRow {
+  [key: string]: unknown;
+  id: string;
+  slide_index: number;
+  module_title: string;
+  topic_title: string;
+  attempt_count: number;
+}
 
 const slideRequestSchema = z.object({
   lockToken: z.string().uuid(),
@@ -43,31 +53,45 @@ export async function POST(
     return NextResponse.json({ error: "Course not found" }, { status: 404 });
   }
 
-  let target;
+  // Atomic claim: a single UPDATE...WHERE id=(SELECT...FOR UPDATE SKIP LOCKED) so
+  // multiple concurrent workers for the same course never claim the same slide.
+  let target: RawSlideRow | undefined;
   if (slideId) {
-    const [row] = await db.select().from(slides).where(eq(slides.id, slideId));
-    target = row;
+    const claimed = await db.execute<RawSlideRow>(drizzleSql`
+      UPDATE slides
+      SET status = 'in_progress', attempt_count = attempt_count + 1, error_message = NULL, updated_at = now()
+      WHERE id = ${slideId} AND course_id = ${courseId}
+      RETURNING id, slide_index, module_title, topic_title, attempt_count
+    `);
+    target = claimed.rows[0];
   } else {
-    const rows = await db
-      .select()
-      .from(slides)
-      .where(
-        and(
-          eq(slides.courseId, courseId),
-          inArray(slides.status, ["pending", "failed"]),
-          drizzleSql`${slides.attemptCount} < ${MAX_ATTEMPTS}`,
-        ),
+    const claimed = await db.execute<RawSlideRow>(drizzleSql`
+      UPDATE slides
+      SET status = 'in_progress', attempt_count = attempt_count + 1, updated_at = now()
+      WHERE id = (
+        SELECT id FROM slides
+        WHERE course_id = ${courseId}
+          AND (
+            status IN ('pending', 'failed')
+            OR (status = 'in_progress' AND updated_at < now() - make_interval(mins => ${STALE_IN_PROGRESS_MINUTES}))
+          )
+          AND attempt_count < ${MAX_ATTEMPTS}
+        ORDER BY slide_index
+        FOR UPDATE SKIP LOCKED
+        LIMIT 1
       )
-      .orderBy(asc(slides.slideIndex))
-      .limit(1);
-    target = rows[0];
+      RETURNING id, slide_index, module_title, topic_title, attempt_count
+    `);
+    target = claimed.rows[0];
   }
 
   if (!target) {
     const remaining = await db
       .select({ count: drizzleSql<number>`count(*)` })
       .from(slides)
-      .where(and(eq(slides.courseId, courseId), inArray(slides.status, ["pending", "failed"])));
+      .where(
+        and(eq(slides.courseId, courseId), inArray(slides.status, ["pending", "failed", "in_progress"])),
+      );
     const total = await db
       .select({ count: drizzleSql<number>`count(*)` })
       .from(slides)
@@ -81,39 +105,25 @@ export async function POST(
     });
   }
 
-  // Reset if this is a manual retry override on a permanently-failed slide.
-  if (slideId && target.attemptCount >= MAX_ATTEMPTS) {
-    await db
-      .update(slides)
-      .set({ attemptCount: 0, errorMessage: null })
-      .where(eq(slides.id, target.id));
-    target.attemptCount = 0;
-  }
-
-  await db
-    .update(slides)
-    .set({ attemptCount: target.attemptCount + 1, updatedAt: new Date() })
-    .where(eq(slides.id, target.id));
-
   const neighboring = await db
     .select({ title: slides.topicTitle })
     .from(slides)
     .where(eq(slides.courseId, courseId))
-    .orderBy(asc(slides.slideIndex));
+    .orderBy(slides.slideIndex);
   const neighboringTitles = neighboring
-    .slice(Math.max(0, target.slideIndex - 2), target.slideIndex + 2)
+    .slice(Math.max(0, target.slide_index - 2), target.slide_index + 2)
     .map((n) => n.title)
-    .filter((t) => t !== target.topicTitle);
+    .filter((t) => t !== target!.topic_title);
 
   try {
     const text = await generateSlideText({
       courseName: course.name,
-      moduleTitle: target.moduleTitle,
-      topicTitle: target.topicTitle,
+      moduleTitle: target.module_title,
+      topicTitle: target.topic_title,
       neighboringTitles,
     });
 
-    const image = await generateSlideImage(courseId, target.slideIndex, text.imagePrompt);
+    const image = await generateSlideImage(courseId, target.slide_index, text.imagePrompt);
 
     await db
       .update(slides)
@@ -133,7 +143,9 @@ export async function POST(
     const remaining = await db
       .select({ count: drizzleSql<number>`count(*)` })
       .from(slides)
-      .where(and(eq(slides.courseId, courseId), inArray(slides.status, ["pending", "failed"])));
+      .where(
+        and(eq(slides.courseId, courseId), inArray(slides.status, ["pending", "failed", "in_progress"])),
+      );
     const total = await db
       .select({ count: drizzleSql<number>`count(*)` })
       .from(slides)
@@ -145,11 +157,11 @@ export async function POST(
       done: false,
       completed: totalCount - remainingCount,
       total: totalCount,
-      slide: { id: target.id, slideIndex: target.slideIndex, title: text.title },
+      slide: { id: target.id, slideIndex: target.slide_index, title: text.title },
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error(`Slide ${target.slideIndex} generation failed`, err);
+    console.error(`Slide ${target.slide_index} generation failed`, err);
     await db
       .update(slides)
       .set({ status: "failed", errorMessage: message.slice(0, 500), updatedAt: new Date() })
@@ -157,8 +169,8 @@ export async function POST(
 
     return NextResponse.json({
       done: false,
-      retryable: target.attemptCount + 1 < MAX_ATTEMPTS,
-      slide: { id: target.id, slideIndex: target.slideIndex, error: message },
+      retryable: target.attempt_count < MAX_ATTEMPTS,
+      slide: { id: target.id, slideIndex: target.slide_index, error: message },
     });
   }
 }

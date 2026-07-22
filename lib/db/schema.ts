@@ -78,7 +78,7 @@ export const generationLocks = pgTable(
     lockedAt: timestamp("locked_at", { withTimezone: true }),
     heartbeatAt: timestamp("heartbeat_at", { withTimezone: true }),
   },
-  (table) => [check("generation_locks_id_check", sql`${table.id} = 1`)],
+  (table) => [check("generation_locks_id_check", sql`${table.id} between 1 and 3`)],
 );
 
 export const courseExports = pgTable("course_exports", {

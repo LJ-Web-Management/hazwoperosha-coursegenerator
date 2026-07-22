@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { eq, asc } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
-import { slides } from "@/lib/db/schema";
+import { courses, slides } from "@/lib/db/schema";
 
 export const runtime = "nodejs";
 
@@ -11,6 +11,12 @@ export async function GET(
 ) {
   const { courseId } = await ctx.params;
   const db = getDb();
+
+  const [course] = await db
+    .select({ status: courses.status })
+    .from(courses)
+    .where(eq(courses.id, courseId));
+
   const rows = await db
     .select({
       id: slides.id,
@@ -30,5 +36,11 @@ export async function GET(
   const completed = rows.filter((r) => r.status === "complete").length;
   const permanentlyFailed = rows.filter((r) => r.status === "failed" && r.attemptCount >= 3).length;
 
-  return NextResponse.json({ slides: rows, total, completed, permanentlyFailed });
+  return NextResponse.json({
+    courseStatus: course?.status ?? null,
+    slides: rows,
+    total,
+    completed,
+    permanentlyFailed,
+  });
 }

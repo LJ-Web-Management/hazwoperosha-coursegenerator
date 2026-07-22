@@ -8,7 +8,7 @@ export type CourseStatus =
 
 export type OutlineVersionStatus = "pending_review" | "approved" | "superseded";
 
-export type SlideStatus = "pending" | "failed" | "complete";
+export type SlideStatus = "pending" | "in_progress" | "failed" | "complete";
 
 export interface OutlineTopic {
   title: string;
