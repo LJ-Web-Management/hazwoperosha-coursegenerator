@@ -15,8 +15,8 @@ You'll need:
 
 - An **OpenAI API key** (platform.openai.com) for outline and slide text generation (defaults to
   `gpt-5` — set `OPENAI_TEXT_MODEL` for a different model).
-- A **Gemini API key** (aistudio.google.com/apikey) for slide images (defaults to the Imagen model
-  `imagen-4.0-generate-001` — set `GEMINI_IMAGE_MODEL` for a different model).
+- A **Gemini API key** (aistudio.google.com/apikey) for slide images (defaults to
+  `gemini-2.5-flash-image` — set `GEMINI_IMAGE_MODEL` for a different model).
 - A **Vercel account**, with this repo connected as a project (`vercel.com/new`, import from
   GitHub).
 - A **Postgres database**. In the Vercel dashboard, go to your project's **Storage** tab and add
@@ -37,7 +37,7 @@ the same variables in Vercel's Project Settings → Environment Variables for pr
 | `OPENAI_API_KEY` | Server-side only — never sent to the browser. |
 | `OPENAI_TEXT_MODEL` | Defaults to `gpt-5`. |
 | `GEMINI_API_KEY` | Server-side only — never sent to the browser. |
-| `GEMINI_IMAGE_MODEL` | Defaults to `imagen-4.0-generate-001`. |
+| `GEMINI_IMAGE_MODEL` | Defaults to `gemini-2.5-flash-image`. |
 | `DATABASE_URL` | Auto-set by the Neon integration on Vercel; for local dev, copy it from the Vercel dashboard or use a local Postgres. |
 | `BLOB_READ_WRITE_TOKEN` | Auto-set by the Blob integration on Vercel; for local dev, copy it from the Vercel dashboard. |
 
@@ -72,9 +72,9 @@ environment before your first deploy.
    feedback; each revision is saved as a new version so nothing is lost.
 3. **Generate** (`/courses/[id]/generate`) — once approved, the browser claims a global
    generation lock (only one course can generate at a time, across all users/devices) and loops
-   through the course one slide at a time: OpenAI writes the slide text, then Gemini (Imagen)
-   generates an image; both get saved. If the page is closed mid-generation, the lock self-releases
-   after ~90 seconds and you can resume from where it left off.
+   through the course one slide at a time: OpenAI writes the slide text, then Gemini generates
+   an image; both get saved. If the page is closed mid-generation, the lock self-releases after
+   ~90 seconds and you can resume from where it left off.
 4. **Download** (`/courses/[id]/download`) — once every slide is generated, build the `.pptx` and
    the SCORM 1.2 `.zip` on demand. Upload the `.zip` to the LMS.
 

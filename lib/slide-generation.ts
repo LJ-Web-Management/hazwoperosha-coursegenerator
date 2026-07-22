@@ -1,4 +1,4 @@
-import { ApiError } from "@google/genai";
+import { ApiError, Modality } from "@google/genai";
 import { getOpenAI, textModel } from "@/lib/openai";
 import { getGemini, geminiImageModel } from "@/lib/gemini";
 import {
@@ -52,20 +52,27 @@ class GeminiFilteredError extends Error {
 
 async function generateImageBytes(prompt: string): Promise<Buffer> {
   const client = getGemini();
-  const result = await client.models.generateImages({
+  const result = await client.models.generateContent({
     model: geminiImageModel(),
-    prompt,
+    contents: prompt,
     config: {
-      numberOfImages: 1,
-      aspectRatio: "16:9",
+      responseModalities: [Modality.TEXT, Modality.IMAGE],
+      imageConfig: { aspectRatio: "16:9" },
     },
   });
 
-  const generated = result.generatedImages?.[0];
-  if (generated?.raiFilteredReason) {
-    throw new GeminiFilteredError(generated.raiFilteredReason);
+  const blockReason = result.promptFeedback?.blockReason;
+  const finishReason = result.candidates?.[0]?.finishReason;
+  const filteredReason = blockReason ?? (finishReason === "SAFETY" ||
+    finishReason === "PROHIBITED_CONTENT" ||
+    finishReason === "BLOCKLIST"
+    ? finishReason
+    : undefined);
+  if (filteredReason) {
+    throw new GeminiFilteredError(filteredReason);
   }
-  const b64 = generated?.image?.imageBytes;
+
+  const b64 = result.data;
   if (!b64) {
     throw new Error("Gemini returned no image data");
   }
