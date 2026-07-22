@@ -1,5 +1,6 @@
-import OpenAI from "openai";
-import { getOpenAI, textModel, imageModel } from "@/lib/openai";
+import { ApiError } from "@google/genai";
+import { getOpenAI, textModel } from "@/lib/openai";
+import { getGemini, geminiImageModel } from "@/lib/gemini";
 import {
   SLIDE_SYSTEM_PROMPT,
   SLIDE_JSON_SCHEMA,
@@ -42,18 +43,31 @@ export interface SlideImageResult {
   fallbackTextOnly: boolean;
 }
 
+class GeminiFilteredError extends Error {
+  constructor(reason: string) {
+    super(`Gemini filtered the image: ${reason}`);
+    this.name = "GeminiFilteredError";
+  }
+}
+
 async function generateImageBytes(prompt: string): Promise<Buffer> {
-  const client = getOpenAI();
-  const result = await client.images.generate({
-    model: imageModel(),
+  const client = getGemini();
+  const result = await client.models.generateImages({
+    model: geminiImageModel(),
     prompt,
-    size: "1536x1024",
-    quality: "medium",
-    n: 1,
+    config: {
+      numberOfImages: 1,
+      aspectRatio: "16:9",
+    },
   });
-  const b64 = result.data?.[0]?.b64_json;
+
+  const generated = result.generatedImages?.[0];
+  if (generated?.raiFilteredReason) {
+    throw new GeminiFilteredError(generated.raiFilteredReason);
+  }
+  const b64 = generated?.image?.imageBytes;
   if (!b64) {
-    throw new Error("OpenAI returned no image data");
+    throw new Error("Gemini returned no image data");
   }
   return Buffer.from(b64, "base64");
 }
@@ -75,10 +89,11 @@ export async function generateSlideImage(
       );
       return { blobUrl: url, fallbackTextOnly: false };
     } catch (err) {
-      const isModerationLike = err instanceof OpenAI.APIError && err.status === 400;
+      const isModerationLike =
+        err instanceof GeminiFilteredError || (err instanceof ApiError && err.status === 400);
       if (!isModerationLike || i === attempts.length - 1) {
         if (isModerationLike) {
-          // Both attempts were rejected by moderation — degrade gracefully instead of failing the slide.
+          // Both attempts were rejected by safety filtering — degrade gracefully instead of failing the slide.
           return { blobUrl: null, fallbackTextOnly: true };
         }
         throw err;

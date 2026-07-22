@@ -15,7 +15,3 @@ export function getOpenAI(): OpenAI {
 export function textModel(): string {
   return process.env.OPENAI_TEXT_MODEL || "gpt-5";
 }
-
-export function imageModel(): string {
-  return process.env.OPENAI_IMAGE_MODEL || "gpt-image-1";
-}

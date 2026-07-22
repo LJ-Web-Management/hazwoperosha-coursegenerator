@@ -4,7 +4,8 @@ Enter a course name and duration, review/edit an AI-drafted outline, then genera
 deck (text, AI images, real-world examples) as a downloadable **.pptx** and a **SCORM 1.2**
 package ready to upload to the Hazwoper Osha Training LMS.
 
-Built with Next.js (App Router) on Vercel, Postgres (via Neon), Vercel Blob, and the OpenAI API.
+Built with Next.js (App Router) on Vercel, Postgres (via Neon), Vercel Blob, the OpenAI API
+(outline + slide text), and the Gemini API (slide images).
 
 ## One-time setup
 
@@ -12,9 +13,10 @@ Built with Next.js (App Router) on Vercel, Postgres (via Neon), Vercel Blob, and
 
 You'll need:
 
-- An **OpenAI API key** (platform.openai.com) with access to a text model and an image model
-  (defaults assume `gpt-5` and `gpt-image-1` — set `OPENAI_TEXT_MODEL` / `OPENAI_IMAGE_MODEL`
-  if you want different models).
+- An **OpenAI API key** (platform.openai.com) for outline and slide text generation (defaults to
+  `gpt-5` — set `OPENAI_TEXT_MODEL` for a different model).
+- A **Gemini API key** (aistudio.google.com/apikey) for slide images (defaults to the Imagen model
+  `imagen-4.0-generate-001` — set `GEMINI_IMAGE_MODEL` for a different model).
 - A **Vercel account**, with this repo connected as a project (`vercel.com/new`, import from
   GitHub).
 - A **Postgres database**. In the Vercel dashboard, go to your project's **Storage** tab and add
@@ -34,7 +36,8 @@ the same variables in Vercel's Project Settings → Environment Variables for pr
 | `SESSION_SECRET` | Random secret for signing the session cookie. Generate with `openssl rand -hex 32`. |
 | `OPENAI_API_KEY` | Server-side only — never sent to the browser. |
 | `OPENAI_TEXT_MODEL` | Defaults to `gpt-5`. |
-| `OPENAI_IMAGE_MODEL` | Defaults to `gpt-image-1`. Update this if/when that model is retired. |
+| `GEMINI_API_KEY` | Server-side only — never sent to the browser. |
+| `GEMINI_IMAGE_MODEL` | Defaults to `imagen-4.0-generate-001`. |
 | `DATABASE_URL` | Auto-set by the Neon integration on Vercel; for local dev, copy it from the Vercel dashboard or use a local Postgres. |
 | `BLOB_READ_WRITE_TOKEN` | Auto-set by the Blob integration on Vercel; for local dev, copy it from the Vercel dashboard. |
 
@@ -69,9 +72,9 @@ environment before your first deploy.
    feedback; each revision is saved as a new version so nothing is lost.
 3. **Generate** (`/courses/[id]/generate`) — once approved, the browser claims a global
    generation lock (only one course can generate at a time, across all users/devices) and loops
-   through the course one slide at a time: OpenAI writes the slide text, then generates an image;
-   both get saved. If the page is closed mid-generation, the lock self-releases after ~90 seconds
-   and you can resume from where it left off.
+   through the course one slide at a time: OpenAI writes the slide text, then Gemini (Imagen)
+   generates an image; both get saved. If the page is closed mid-generation, the lock self-releases
+   after ~90 seconds and you can resume from where it left off.
 4. **Download** (`/courses/[id]/download`) — once every slide is generated, build the `.pptx` and
    the SCORM 1.2 `.zip` on demand. Upload the `.zip` to the LMS.
 
@@ -83,6 +86,6 @@ environment before your first deploy.
   but hasn't been verified against the real Hazwoper Osha Training LMS yet — test-upload a short
   course first before relying on it for a real course, since LMS SCORM importers vary in
   strictness beyond what the spec alone guarantees.
-- The image-generation moderation fallback degrades a slide to text-only if OpenAI's safety
+- The image-generation moderation fallback degrades a slide to text-only if Gemini's safety
   filter rejects both the original and a sanitized prompt — check the generation progress page
   for any slides that ended up without an image.
