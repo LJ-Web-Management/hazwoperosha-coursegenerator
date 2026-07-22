@@ -52,7 +52,7 @@ export default function NewCoursePage() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Confined Space Entry"
-            className="rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+            className="rounded-md border border-zinc-300 px-3 py-2"
           />
         </label>
         <div className="flex flex-col gap-1">
@@ -63,7 +63,7 @@ export default function NewCoursePage() {
               <select
                 value={hours}
                 onChange={(e) => setHours(Number(e.target.value))}
-                className="rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+                className="rounded-md border border-zinc-300 px-3 py-2"
               >
                 {HOUR_OPTIONS.map((h) => (
                   <option key={h} value={h}>
@@ -77,7 +77,7 @@ export default function NewCoursePage() {
               <select
                 value={minutes}
                 onChange={(e) => setMinutes(Number(e.target.value))}
-                className="rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+                className="rounded-md border border-zinc-300 px-3 py-2"
               >
                 {MINUTE_STEPS.map((m) => (
                   <option key={m} value={m}>

@@ -64,13 +64,13 @@ export default function DownloadPage() {
       </p>
 
       {error && (
-        <div className="mb-4 rounded-md border border-red-300 bg-red-50 p-3 text-sm dark:border-red-800 dark:bg-red-950">
+        <div className="mb-4 rounded-md border border-red-300 bg-red-50 p-3 text-sm">
           {error}
         </div>
       )}
 
       <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
+        <div className="flex items-center justify-between rounded-lg border border-zinc-200 p-4">
           <div>
             <div className="font-medium">PowerPoint (.pptx)</div>
             <div className="text-sm text-zinc-500">Editable slide deck with images and examples.</div>
@@ -86,14 +86,14 @@ export default function DownloadPage() {
             <button
               onClick={() => build("pptx")}
               disabled={!allComplete || building !== null}
-              className="rounded-md border border-zinc-300 px-4 py-2 text-sm disabled:opacity-50 dark:border-zinc-700"
+              className="rounded-md border border-zinc-300 px-4 py-2 text-sm disabled:opacity-50"
             >
               {building === "pptx" ? "Building…" : "Build"}
             </button>
           )}
         </div>
 
-        <div className="flex items-center justify-between rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
+        <div className="flex items-center justify-between rounded-lg border border-zinc-200 p-4">
           <div>
             <div className="font-medium">SCORM 1.2 package (.zip)</div>
             <div className="text-sm text-zinc-500">Upload directly to the Hazwoper Osha Training LMS.</div>
@@ -109,7 +109,7 @@ export default function DownloadPage() {
             <button
               onClick={() => build("scorm")}
               disabled={!allComplete || building !== null}
-              className="rounded-md border border-zinc-300 px-4 py-2 text-sm disabled:opacity-50 dark:border-zinc-700"
+              className="rounded-md border border-zinc-300 px-4 py-2 text-sm disabled:opacity-50"
             >
               {building === "scorm" ? "Building…" : "Build"}
             </button>

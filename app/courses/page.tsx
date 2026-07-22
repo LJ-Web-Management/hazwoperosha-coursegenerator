@@ -65,7 +65,7 @@ export default function CoursesPage() {
           <li key={course.id}>
             <Link
               href={statusHref(course)}
-              className="flex items-center justify-between rounded-lg border border-zinc-200 p-4 hover:border-zinc-400 dark:border-zinc-800 dark:hover:border-zinc-600"
+              className="flex items-center justify-between rounded-lg border border-zinc-200 p-4 hover:border-zinc-400"
             >
               <div>
                 <div className="font-medium">{course.name}</div>

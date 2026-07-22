@@ -144,7 +144,7 @@ export default function GeneratePage() {
         {completed} of {total} slides complete
       </p>
 
-      <div className="mb-6 h-2 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
+      <div className="mb-6 h-2 overflow-hidden rounded-full bg-zinc-200">
         <div
           className="h-full bg-foreground transition-all"
           style={{ width: `${pct}%` }}
@@ -152,12 +152,12 @@ export default function GeneratePage() {
       </div>
 
       {lockError && (
-        <div className="mb-4 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm dark:border-amber-800 dark:bg-amber-950">
+        <div className="mb-4 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm">
           {lockError}
         </div>
       )}
       {fatalError && (
-        <div className="mb-4 rounded-md border border-red-300 bg-red-50 p-3 text-sm dark:border-red-800 dark:bg-red-950">
+        <div className="mb-4 rounded-md border border-red-300 bg-red-50 p-3 text-sm">
           {fatalError}
         </div>
       )}
@@ -173,7 +173,7 @@ export default function GeneratePage() {
       {running && <p className="mb-6 text-sm text-zinc-500">Generating… this page updates live.</p>}
 
       {permanentlyFailed.length > 0 && (
-        <div className="mb-6 rounded-lg border border-red-300 p-4 dark:border-red-800">
+        <div className="mb-6 rounded-lg border border-red-300 p-4">
           <h2 className="mb-2 font-semibold">Slides that failed after 3 attempts</h2>
           <ul className="flex flex-col gap-2">
             {permanentlyFailed.map((s) => (
@@ -184,7 +184,7 @@ export default function GeneratePage() {
                 <button
                   onClick={() => retrySlide(s.id)}
                   disabled={running}
-                  className="rounded-md border border-zinc-300 px-3 py-1 text-xs disabled:opacity-50 dark:border-zinc-700"
+                  className="rounded-md border border-zinc-300 px-3 py-1 text-xs disabled:opacity-50"
                 >
                   Retry
                 </button>
@@ -196,7 +196,7 @@ export default function GeneratePage() {
 
       <ul className="flex flex-col gap-1 text-sm">
         {slides.map((s) => (
-          <li key={s.id} className="flex items-center justify-between border-b border-zinc-100 py-1 dark:border-zinc-900">
+          <li key={s.id} className="flex items-center justify-between border-b border-zinc-100 py-1">
             <span>
               {s.slideIndex + 1}. {s.title ?? s.topicTitle}
             </span>

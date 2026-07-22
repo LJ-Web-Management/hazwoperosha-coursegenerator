@@ -102,18 +102,18 @@ export default function OutlinePage() {
       </p>
 
       {current?.appliedFeedback && (
-        <div className="mb-4 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm dark:border-amber-800 dark:bg-amber-950">
+        <div className="mb-4 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm">
           <strong>Previous feedback applied:</strong> {current.appliedFeedback}
         </div>
       )}
 
       <div className="mb-8 flex flex-col gap-6">
         {current?.modules.map((mod, i) => (
-          <div key={i} className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
+          <div key={i} className="rounded-lg border border-zinc-200 p-4">
             <h2 className="mb-2 font-semibold">
               Module {i + 1}: {mod.title}
             </h2>
-            <ul className="list-inside list-disc text-sm text-zinc-700 dark:text-zinc-300">
+            <ul className="list-inside list-disc text-sm text-zinc-700">
               {mod.topics.map((topic, j) => (
                 <li key={j}>
                   {topic.title}{" "}
@@ -127,7 +127,7 @@ export default function OutlinePage() {
         ))}
       </div>
 
-      <div className="flex flex-col gap-3 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
+      <div className="flex flex-col gap-3 rounded-lg border border-zinc-200 p-4">
         <label className="flex flex-col gap-1">
           <span className="text-sm font-medium">Request changes (optional)</span>
           <textarea
@@ -135,7 +135,7 @@ export default function OutlinePage() {
             onChange={(e) => setFeedback(e.target.value)}
             rows={3}
             placeholder="e.g. Add a module on decontamination procedures, combine modules 2 and 3…"
-            className="rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+            className="rounded-md border border-zinc-300 px-3 py-2"
           />
         </label>
         {error && <p className="text-sm text-red-600">{error}</p>}
@@ -143,7 +143,7 @@ export default function OutlinePage() {
           <button
             onClick={handleRevise}
             disabled={busy || !feedback.trim()}
-            className="rounded-md border border-zinc-300 px-4 py-2 text-sm disabled:opacity-50 dark:border-zinc-700"
+            className="rounded-md border border-zinc-300 px-4 py-2 text-sm disabled:opacity-50"
           >
             {busy ? "Working…" : "Send back with edits"}
           </button>
