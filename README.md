@@ -75,8 +75,14 @@ environment before your first deploy.
    through the course one slide at a time: OpenAI writes the slide text, then Gemini generates
    an image; both get saved. If the page is closed mid-generation, the lock self-releases after
    ~90 seconds and you can resume from where it left off.
-4. **Download** (`/courses/[id]/download`) — once every slide is generated, build the `.pptx` and
-   the SCORM 1.2 `.zip` on demand. Upload the `.zip` to the LMS.
+4. **Download** (`/courses/[id]/download`) — once every slide is generated, the page automatically
+   sends the raw `.pptx` to OpenAI (with the HAZWOPER logo attached) to be redesigned: HAZWOPER
+   branding, per-slide font sizing, a styled "real-world example" callout, and slide numbers. Once
+   that finishes, it automatically builds a SCORM 1.2 `.zip` styled to match (same navy/gold
+   theme, logo, and callout treatment) using the course's saved slide data — it does not re-render
+   the pptx itself, since there's no pptx-rendering pipeline in this stack. If the AI redesign
+   fails, the original unstyled `.pptx` remains available as a fallback, and the SCORM package can
+   still be built manually without waiting on it. Upload the `.zip` to the LMS.
 
 ## Notes / known limitations
 

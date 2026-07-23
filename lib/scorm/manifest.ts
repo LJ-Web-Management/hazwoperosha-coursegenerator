@@ -46,6 +46,7 @@ export function renderManifest(course: CourseRow, imageFileNames: string[]): str
       <file href="viewer.css"/>
       <file href="scorm-api.js"/>
       <file href="slides.json"/>
+      <file href="brand-logo.png"/>
 ${imageFiles}
     </resource>
   </resources>

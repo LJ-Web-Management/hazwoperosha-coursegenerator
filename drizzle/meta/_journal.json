@@ -15,6 +15,13 @@
       "when": 1784751944187,
       "tag": "0001_woozy_fixer",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1784760174957,
+      "tag": "0002_remarkable_wendigo",
+      "breakpoints": true
     }
   ]
 }

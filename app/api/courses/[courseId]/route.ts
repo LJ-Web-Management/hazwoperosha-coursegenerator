@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { eq, desc } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { courses, outlineVersions, slides, courseExports } from "@/lib/db/schema";
+import { forceReleaseCourse } from "@/lib/lock";
 
 export const runtime = "nodejs";
 
@@ -47,4 +48,18 @@ export async function GET(_request: Request, ctx: RouteContext<"/api/courses/[co
     slides: slideRows,
     exports: exportRows,
   });
+}
+
+export async function DELETE(_request: Request, ctx: RouteContext<"/api/courses/[courseId]">) {
+  const { courseId } = await ctx.params;
+  const db = getDb();
+
+  await forceReleaseCourse(courseId);
+
+  const deleted = await db.delete(courses).where(eq(courses.id, courseId)).returning({ id: courses.id });
+  if (deleted.length === 0) {
+    return NextResponse.json({ error: "Course not found" }, { status: 404 });
+  }
+
+  return NextResponse.json({ ok: true });
 }

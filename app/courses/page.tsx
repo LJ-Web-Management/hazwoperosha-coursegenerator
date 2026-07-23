@@ -37,6 +37,7 @@ function statusHref(course: CourseSummary): string {
 export default function CoursesPage() {
   const [courses, setCourses] = useState<CourseSummary[] | null>(null);
   const [stoppingAll, setStoppingAll] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const loadCourses = useCallback(async () => {
     const res = await fetch("/api/courses");
@@ -61,6 +62,19 @@ export default function CoursesPage() {
       await loadCourses();
     } finally {
       setStoppingAll(false);
+    }
+  }
+
+  async function handleDelete(course: CourseSummary) {
+    if (!confirm(`Delete "${course.name}"? This permanently removes the course, its outline, slides, and downloads. This can't be undone.`)) {
+      return;
+    }
+    setDeletingId(course.id);
+    try {
+      await fetch(`/api/courses/${course.id}`, { method: "DELETE" });
+      await loadCourses();
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -94,11 +108,11 @@ export default function CoursesPage() {
 
       <ul className="flex flex-col gap-3">
         {courses?.map((course) => (
-          <li key={course.id}>
-            <Link
-              href={statusHref(course)}
-              className="flex items-center justify-between rounded-lg border border-zinc-200 p-4 hover:border-zinc-400"
-            >
+          <li
+            key={course.id}
+            className="flex items-center gap-3 rounded-lg border border-zinc-200 p-4 hover:border-zinc-400"
+          >
+            <Link href={statusHref(course)} className="flex flex-1 items-center justify-between">
               <div>
                 <div className="font-medium">{course.name}</div>
                 <div className="text-sm text-zinc-500">
@@ -109,6 +123,13 @@ export default function CoursesPage() {
                 {STATUS_LABEL[course.status] ?? course.status}
               </span>
             </Link>
+            <button
+              onClick={() => handleDelete(course)}
+              disabled={deletingId === course.id}
+              className="rounded-md border border-red-300 px-3 py-1.5 text-sm text-red-600 disabled:opacity-50"
+            >
+              {deletingId === course.id ? "Deleting…" : "Delete"}
+            </button>
           </li>
         ))}
       </ul>

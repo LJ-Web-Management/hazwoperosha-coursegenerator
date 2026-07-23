@@ -21,6 +21,9 @@ export const courses = pgTable("courses", {
   status: text("status").notNull().default("draft"),
   currentOutlineVersionId: uuid("current_outline_version_id"),
   approvedOutlineVersionId: uuid("approved_outline_version_id"),
+  beautifyResponseId: text("beautify_response_id"),
+  beautifyStatus: text("beautify_status"),
+  beautifyError: text("beautify_error"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

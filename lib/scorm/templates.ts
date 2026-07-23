@@ -61,7 +61,17 @@ export const SCORM_API_JS = `/* Minimal SCORM 1.2 API adapter. No external depen
 })(window);
 `;
 
-export const VIEWER_CSS = `* {
+export const VIEWER_CSS = `:root {
+  --navy: #14213d;
+  --navy-deep: #0b1526;
+  --gold: #f0c800;
+  --gold-dark: #a88600;
+  --text: #1a1a1a;
+  --bg: #ffffff;
+  --callout-bg: #fff9e0;
+  --border: #e2e2e2;
+}
+* {
   box-sizing: border-box;
 }
 html,
@@ -70,8 +80,8 @@ body {
   padding: 0;
   height: 100%;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background: #f7f7f8;
-  color: #1a1a1a;
+  background: #f4f5f7;
+  color: var(--text);
 }
 #app {
   display: flex;
@@ -79,79 +89,135 @@ body {
   height: 100%;
 }
 header {
-  padding: 16px 24px;
-  background: #ffffff;
-  border-bottom: 1px solid #e2e2e2;
+  padding: 14px 24px;
+  background: var(--navy);
+  color: #ffffff;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 16px;
 }
 header h1 {
   font-size: 16px;
+  font-weight: 600;
   margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#logo {
+  height: 32px;
+  width: auto;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 #progress-track {
   flex: 1;
   height: 6px;
-  background: #e2e2e2;
+  background: rgba(255, 255, 255, 0.2);
   border-radius: 3px;
-  margin: 0 16px;
   overflow: hidden;
 }
 #progress-fill {
   height: 100%;
-  background: #2563eb;
+  background: var(--gold);
   width: 0%;
   transition: width 0.2s ease;
 }
+#slide-counter {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+  white-space: nowrap;
+}
 main {
+  position: relative;
   flex: 1;
   overflow-y: auto;
-  padding: 32px 48px;
-  max-width: 900px;
+  padding: 32px 48px 56px;
+  max-width: 1000px;
   margin: 0 auto;
   width: 100%;
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  grid-template-areas:
+    "title title"
+    "bullets image"
+    "example example";
+  column-gap: 40px;
+  row-gap: 8px;
+  background: var(--bg);
 }
 #module-label {
+  grid-area: title;
   font-size: 13px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #6b7280;
+  color: var(--gold-dark);
+  font-weight: 600;
   margin-bottom: 4px;
 }
 #slide-title {
-  font-size: 30px;
-  margin: 0 0 20px;
+  grid-area: title;
+  margin-top: 22px;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--navy);
+  margin-bottom: 20px;
 }
 #slide-image {
+  grid-area: image;
   max-width: 100%;
-  border-radius: 8px;
-  margin-bottom: 20px;
+  max-height: 320px;
+  object-fit: contain;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px;
+  background: #ffffff;
   display: block;
+  align-self: start;
 }
 #slide-bullets {
-  font-size: 17px;
+  grid-area: bullets;
+  font-size: 18px;
   line-height: 1.6;
-  padding-left: 24px;
+  padding-left: 22px;
+  margin: 0;
 }
 #slide-bullets li {
   margin-bottom: 10px;
 }
 #slide-example {
-  margin-top: 24px;
+  grid-area: example;
+  margin-top: 28px;
   padding: 16px 20px;
-  background: #eef2ff;
-  border-left: 4px solid #2563eb;
+  background: var(--callout-bg);
+  border-left: 4px solid var(--gold-dark);
   border-radius: 4px;
-  font-style: italic;
+  font-size: 15px;
+  line-height: 1.5;
+}
+#slide-example strong {
+  color: var(--navy);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-size: 13px;
+  display: block;
+  margin-bottom: 4px;
+}
+#slide-number {
+  position: absolute;
+  right: 16px;
+  bottom: 12px;
+  font-size: 12px;
+  color: #9ca3af;
 }
 footer {
   padding: 16px 24px;
   background: #ffffff;
-  border-top: 1px solid #e2e2e2;
+  border-top: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
 }
 button {
   font-size: 15px;
@@ -166,13 +232,19 @@ button:disabled {
   cursor: default;
 }
 button.primary {
-  background: #2563eb;
+  background: var(--navy);
   color: #ffffff;
-  border-color: #2563eb;
+  border-color: var(--navy);
 }
-#slide-counter {
-  font-size: 14px;
-  color: #6b7280;
+@media (max-width: 700px) {
+  main {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "title"
+      "image"
+      "bullets"
+      "example";
+  }
 }
 `;
 
@@ -190,6 +262,7 @@ export const VIEWER_HTML = `<!doctype html>
         <h1 id="course-title">Course</h1>
         <div id="progress-track"><div id="progress-fill"></div></div>
         <span id="slide-counter"></span>
+        <img id="logo" src="brand-logo.png" alt="HAZWOPER Training LLC" />
       </header>
       <main>
         <div id="module-label"></div>
@@ -197,6 +270,7 @@ export const VIEWER_HTML = `<!doctype html>
         <img id="slide-image" style="display: none" alt="" />
         <ul id="slide-bullets"></ul>
         <div id="slide-example" style="display: none"></div>
+        <div id="slide-number"></div>
       </main>
       <footer>
         <button id="prev-btn">Previous</button>
@@ -223,6 +297,7 @@ export const VIEWER_JS = `(function () {
   const bulletsEl = document.getElementById("slide-bullets");
   const exampleEl = document.getElementById("slide-example");
   const counterEl = document.getElementById("slide-counter");
+  const numberEl = document.getElementById("slide-number");
   const progressFillEl = document.getElementById("progress-fill");
   const prevBtn = document.getElementById("prev-btn");
   const nextBtn = document.getElementById("next-btn");
@@ -249,13 +324,20 @@ export const VIEWER_JS = `(function () {
     });
 
     if (slide.exampleText) {
-      exampleEl.textContent = "Real-world example: " + slide.exampleText;
+      exampleEl.innerHTML = "";
+      const label = document.createElement("strong");
+      label.textContent = "Real-world example";
+      const body = document.createElement("span");
+      body.textContent = slide.exampleText;
+      exampleEl.appendChild(label);
+      exampleEl.appendChild(body);
       exampleEl.style.display = "";
     } else {
       exampleEl.style.display = "none";
     }
 
     counterEl.textContent = "Slide " + (current + 1) + " of " + slides.length;
+    numberEl.textContent = String(current + 1);
     progressFillEl.style.width = Math.round(((current + 1) / slides.length) * 100) + "%";
     prevBtn.disabled = current === 0;
     nextBtn.textContent = current === slides.length - 1 ? "Finish" : "Next";

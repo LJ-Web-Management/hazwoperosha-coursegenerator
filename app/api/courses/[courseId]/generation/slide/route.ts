@@ -23,7 +23,6 @@ interface RawSlideRow {
 
 const slideRequestSchema = z.object({
   lockToken: z.string().uuid(),
-  slideId: z.string().uuid().optional(), // explicit override for manual per-slide retry
 });
 
 export async function POST(
@@ -36,7 +35,7 @@ export async function POST(
   if (!parsed.success) {
     return NextResponse.json({ error: "lockToken required" }, { status: 400 });
   }
-  const { lockToken, slideId } = parsed.data;
+  const { lockToken } = parsed.data;
 
   const renewed = await renewLock(courseId, lockToken);
   if (!renewed) {
@@ -55,35 +54,24 @@ export async function POST(
 
   // Atomic claim: a single UPDATE...WHERE id=(SELECT...FOR UPDATE SKIP LOCKED) so
   // multiple concurrent workers for the same course never claim the same slide.
-  let target: RawSlideRow | undefined;
-  if (slideId) {
-    const claimed = await db.execute<RawSlideRow>(drizzleSql`
-      UPDATE slides
-      SET status = 'in_progress', attempt_count = attempt_count + 1, error_message = NULL, updated_at = now()
-      WHERE id = ${slideId} AND course_id = ${courseId}
-      RETURNING id, slide_index, module_title, topic_title, attempt_count
-    `);
-    target = claimed.rows[0];
-  } else {
-    const claimed = await db.execute<RawSlideRow>(drizzleSql`
-      UPDATE slides
-      SET status = 'in_progress', attempt_count = attempt_count + 1, updated_at = now()
-      WHERE id = (
-        SELECT id FROM slides
-        WHERE course_id = ${courseId}
-          AND (
-            status IN ('pending', 'failed')
-            OR (status = 'in_progress' AND updated_at < now() - make_interval(mins => ${STALE_IN_PROGRESS_MINUTES}))
-          )
-          AND attempt_count < ${MAX_ATTEMPTS}
-        ORDER BY slide_index
-        FOR UPDATE SKIP LOCKED
-        LIMIT 1
-      )
-      RETURNING id, slide_index, module_title, topic_title, attempt_count
-    `);
-    target = claimed.rows[0];
-  }
+  const claimed = await db.execute<RawSlideRow>(drizzleSql`
+    UPDATE slides
+    SET status = 'in_progress', attempt_count = attempt_count + 1, updated_at = now()
+    WHERE id = (
+      SELECT id FROM slides
+      WHERE course_id = ${courseId}
+        AND (
+          status IN ('pending', 'failed')
+          OR (status = 'in_progress' AND updated_at < now() - make_interval(mins => ${STALE_IN_PROGRESS_MINUTES}))
+        )
+        AND attempt_count < ${MAX_ATTEMPTS}
+      ORDER BY slide_index
+      FOR UPDATE SKIP LOCKED
+      LIMIT 1
+    )
+    RETURNING id, slide_index, module_title, topic_title, attempt_count
+  `);
+  const target = claimed.rows[0];
 
   if (!target) {
     const remaining = await db

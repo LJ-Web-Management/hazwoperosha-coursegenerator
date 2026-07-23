@@ -1,8 +1,12 @@
+import { readFileSync } from "fs";
+import path from "path";
 import JSZip from "jszip";
 import { renderManifest } from "@/lib/scorm/manifest";
 import { SCORM_API_JS, VIEWER_CSS, VIEWER_HTML, VIEWER_JS } from "@/lib/scorm/templates";
 import { fetchAsBuffer } from "@/lib/blob";
 import type { CourseRow, SlideRow } from "@/lib/pptx";
+
+const LOGO_PATH = path.join(process.cwd(), "public/brand/hazwoper-logo.png");
 
 interface SlidesJsonEntry {
   moduleTitle: string;
@@ -42,6 +46,7 @@ export async function buildScormZip(course: CourseRow, slideRows: SlideRow[]): P
   zip.file("viewer.js", VIEWER_JS);
   zip.file("viewer.css", VIEWER_CSS);
   zip.file("scorm-api.js", SCORM_API_JS);
+  zip.file("brand-logo.png", readFileSync(LOGO_PATH));
   zip.file("slides.json", JSON.stringify({ courseTitle: course.name, slides: slidesJson }));
 
   return zip.generateAsync({

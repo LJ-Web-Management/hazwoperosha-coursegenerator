@@ -143,35 +143,40 @@ export default function GeneratePage() {
     }
   }
 
-  async function retrySlide(slideId: string) {
+  const permanentlyFailed = slides.filter((s) => s.status === "failed" && s.attemptCount >= 3);
+
+  // Resets don't call the AI — they just clear the slide back to "pending" so the normal
+  // worker loop (Start/Resume generation) picks it up again instead of retrying inline.
+  function postResetSlide(slideId: string) {
+    return fetch(`/api/courses/${courseId}/generation/reset-slide`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slideId }),
+    });
+  }
+
+  async function resetSlide(slideId: string) {
     setRunning(true);
     setLockError(null);
     try {
-      const startRes = await fetch(`/api/courses/${courseId}/generation/start`, {
-        method: "POST",
-      });
-      const startData = await startRes.json();
-      if (!startRes.ok) {
-        setLockError(startData.error ?? "Could not start generation");
-        return;
-      }
-      await fetch(`/api/courses/${courseId}/generation/slide`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lockToken: startData.lockToken, slideId }),
-      });
-      await fetch(`/api/courses/${courseId}/generation/release`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lockToken: startData.lockToken }),
-      });
+      await postResetSlide(slideId);
       await refreshStatus();
     } finally {
       setRunning(false);
     }
   }
 
-  const permanentlyFailed = slides.filter((s) => s.status === "failed" && s.attemptCount >= 3);
+  async function resetAllFailed() {
+    setRunning(true);
+    setLockError(null);
+    try {
+      await Promise.all(permanentlyFailed.map((s) => postResetSlide(s.id)));
+      await refreshStatus();
+    } finally {
+      setRunning(false);
+    }
+  }
+
   const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
   const isGenerating = courseStatus === "generating";
 
@@ -223,7 +228,20 @@ export default function GeneratePage() {
 
       {permanentlyFailed.length > 0 && (
         <div className="mb-6 rounded-lg border border-red-300 p-4">
-          <h2 className="mb-2 font-semibold">Slides that failed after 3 attempts</h2>
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="font-semibold">Slides that failed after 3 attempts</h2>
+            <button
+              onClick={resetAllFailed}
+              disabled={running || isGenerating}
+              className="rounded-md border border-zinc-300 px-3 py-1 text-xs disabled:opacity-50"
+            >
+              Retry all {permanentlyFailed.length}
+            </button>
+          </div>
+          <p className="mb-2 text-xs text-zinc-500">
+            Retry resets a slide back to not-started — hit Start/Resume generation afterward to
+            actually regenerate it.
+          </p>
           <ul className="flex flex-col gap-2">
             {permanentlyFailed.map((s) => (
               <li key={s.id} className="flex items-center justify-between text-sm">
@@ -231,7 +249,7 @@ export default function GeneratePage() {
                   Slide {s.slideIndex + 1}: {s.topicTitle} — {s.errorMessage}
                 </span>
                 <button
-                  onClick={() => retrySlide(s.id)}
+                  onClick={() => resetSlide(s.id)}
                   disabled={running || isGenerating}
                   className="rounded-md border border-zinc-300 px-3 py-1 text-xs disabled:opacity-50"
                 >
