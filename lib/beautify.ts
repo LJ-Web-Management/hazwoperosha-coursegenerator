@@ -18,16 +18,23 @@ Mandatory Content Rules
 6. Preserve all compliance-related terminology, citations, standards, numbers, and examples exactly as written.
 
 Body Text Sizing
-You cannot visually preview the rendered slide, so compute each slide's body font size explicitly instead of guessing — do not just pick a size that "looks about right."
-For every slide's body text box, follow this procedure in your Python code:
-1. Read the text box's width and height in points (EMU / 12700), then subtract its internal margins (text_frame margin_left/right/top/bottom, or 0.1 inch per side if unset) to get the usable width and height.
-2. For a candidate font size, estimate the wrapped line count of each bullet as ceil((len(bullet_text) * avg_char_width_at_size) / usable_width), where avg_char_width_at_size ≈ 0.5 * font_size_pt for a typical sans-serif body font. Sum the wrapped-line counts across all bullets (each bullet also gets +1 line of paragraph spacing) to get the total lines needed at that size.
-3. Multiply total lines needed by the line height (≈ 1.2 * font_size_pt) to get the total height needed at that candidate size.
-4. Starting at 32pt and stepping down (32, 28, 26, 24, 22, 20, 18, 17, 16, 15, 14), pick the LARGEST size where the total height needed fits within the usable height. This is why the size must vary slide to slide — a slide with two short bullets should end up much larger than a slide with eight long ones.
-5. Use approximately 18-point as the preferred minimum; only go below 18pt (down to 14pt) if the slide's original text genuinely cannot fit at 18pt within its box — never truncate, shrink the box, or drop text to avoid this.
-6. After setting the computed size, also set text_frame.auto_size = MSO_AUTO_SIZE.TEXT_TO_FIT_SHAPE on that text box as a safety net only — it lets PowerPoint shrink further on open if your estimate was still slightly too large, but it is not a substitute for step 4; do not skip the explicit computation and rely on autofit alone, since autofit never enlarges text and tends to over-shrink.
+You cannot visually preview the rendered slide, so compute each slide's body font size explicitly instead of guessing — do not just pick a size that "looks about right." A font size that technically fits inside the text box's own stored height is not good enough if that box's stored geometry already overlaps the title or the callout — fix the box's geometry FIRST, then fit the font to it. This two-phase order is mandatory; do not skip phase 1 and go straight to font math using whatever height the box happens to already have.
+
+Phase 1 — fix the box geometry so it can never overlap its neighbors, for every slide, before touching font size:
+1. Find the title shape's bottom edge (top + height) and the real-world-example callout's top edge on this slide (compute the callout's intended position first if you haven't placed it yet).
+2. Set the body text box's top to the title's bottom edge plus a small margin (~0.15in), and set its height so that top + height lands at the callout's top edge minus a small margin (~0.15in). This is the maximum safe vertical span — use it fully; do not leave the box shorter than this span "just in case," and never let it extend past either boundary.
+3. Leave the box's width and left position as the existing left-column width; do not change those.
+
+Phase 2 — fit the font to that corrected box, in your Python code:
+4. Read the corrected text box's width and height in points (EMU / 12700), then subtract its internal margins (text_frame margin_left/right/top/bottom, or 0.1 inch per side if unset) to get the usable width and height.
+5. For a candidate font size, estimate the wrapped line count of each bullet as ceil((len(bullet_text) * avg_char_width_at_size) / usable_width), where avg_char_width_at_size ≈ 0.5 * font_size_pt for a typical sans-serif body font. Sum the wrapped-line counts across all bullets (each bullet also gets +1 line of paragraph spacing) to get the total lines needed at that size.
+6. Multiply total lines needed by the line height (≈ 1.2 * font_size_pt) to get the total height needed at that candidate size.
+7. Starting at 32pt and stepping down (32, 28, 26, 24, 22, 20, 18, 17, 16, 15, 14), pick the LARGEST size where the total height needed fits within the usable height computed in step 4 — never a size that only fits some other, larger height. This is why the size must vary slide to slide — a slide with two short bullets should end up much larger than a slide with eight long ones.
+8. Use approximately 18-point as the preferred minimum; only go below 18pt (down to 14pt) if the slide's original text genuinely cannot fit at 18pt within the box from Phase 1. Never truncate or drop text, and never let text render outside the box's bounds to avoid shrinking further — 14pt is still smaller than every case you'll realistically hit once Phase 1 has maximized the box's height.
+9. After setting the computed size, also set text_frame.auto_size = MSO_AUTO_SIZE.TEXT_TO_FIT_SHAPE on that text box as a safety net only — it lets PowerPoint shrink further on open if your estimate was still slightly too large, but it is not a substitute for step 7; do not skip the explicit computation and rely on autofit alone, since autofit never enlarges text and tends to over-shrink.
+10. As a final check, confirm text_box_top >= title_bottom_edge and (text_box_top + text_box_height) <= callout_top_edge. If either is violated, your Phase 1 geometry was wrong — fix it, don't just shrink the font further.
 - Maintain consistent line spacing, paragraph spacing, and bullet indentation across slides (the font size varies, but the spacing multipliers/ratios should not).
-- Do not distort text boxes or stretch text horizontally — only change font size and, if truly necessary, the text box height, never its width.
+- Do not distort text boxes or stretch text horizontally — only change font size and box height (per Phase 1), never box width.
 
 Design Theme
 Apply a clean, professional corporate safety-training design based on the attached HAZWOPER Training LLC logo.
@@ -104,7 +111,7 @@ Before returning the presentation, inspect every slide and confirm:
 - No wording was accidentally altered.
 - All em dashes and en dashes were removed.
 - No text is cut off or overflowing.
-- No text overlaps another element.
+- No text overlaps another element. In particular, on every slide, explicitly recompute and check: body-text-box-top >= title-bottom-edge, and body-text-box-bottom <= callout-top-edge. Do this check even for slides where the text "looked fine" — a box whose stored geometry overlaps its neighbors can still look fine with short text and only show the overlap on slides with more text.
 - All images remain on their original slides.
 - Every picture's displayed aspect ratio (after any crop) is within 1% of its native aspect ratio — recheck any image that looked stretched, cropped oddly, or squeezed in the original file too.
 - Every image is horizontally centered within its column, with no leftover space bunched on one side.
