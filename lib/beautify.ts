@@ -3,6 +3,7 @@ import path from "path";
 import { toFile } from "openai/uploads";
 import type { Response as OpenAIResponse } from "openai/resources/responses/responses";
 import { getOpenAI, textModel } from "@/lib/openai";
+import { enforceTextFitsInBox } from "@/lib/pptxAutofit";
 
 const LOGO_PATH = path.join(process.cwd(), "public/brand/hazwoper-logo.png");
 
@@ -18,21 +19,15 @@ Mandatory Content Rules
 6. Preserve all compliance-related terminology, citations, standards, numbers, and examples exactly as written.
 
 Body Text Sizing
-You cannot visually preview the rendered slide, so compute each slide's body font size explicitly instead of guessing — do not just pick a size that "looks about right." A font size that technically fits inside the text box's own stored height is not good enough if that box's stored geometry already overlaps the title or the callout — fix the box's geometry FIRST, then fit the font to it. This two-phase order is mandatory; do not skip phase 1 and go straight to font math using whatever height the box happens to already have.
-
 Phase 1 — fix the box geometry so it can never overlap its neighbors, for every slide, before touching font size:
 1. Find the title shape's bottom edge (top + height) and the real-world-example callout's top edge on this slide (compute the callout's intended position first if you haven't placed it yet).
 2. Set the body text box's top to the title's bottom edge plus a small margin (~0.15in), and set its height so that top + height lands at the callout's top edge minus a small margin (~0.15in). This is the maximum safe vertical span — use it fully; do not leave the box shorter than this span "just in case," and never let it extend past either boundary.
 3. Leave the box's width and left position as the existing left-column width; do not change those.
 
-Phase 2 — fit the font to that corrected box, in your Python code:
-4. Read the corrected text box's width and height in points (EMU / 12700), then subtract its internal margins (text_frame margin_left/right/top/bottom, or 0.1 inch per side if unset) to get the usable width and height.
-5. For a candidate font size, estimate the wrapped line count of each bullet as ceil((len(bullet_text) * avg_char_width_at_size) / usable_width), where avg_char_width_at_size ≈ 0.5 * font_size_pt for a typical sans-serif body font. Sum the wrapped-line counts across all bullets (each bullet also gets +1 line of paragraph spacing) to get the total lines needed at that size.
-6. Multiply total lines needed by the line height (≈ 1.2 * font_size_pt) to get the total height needed at that candidate size.
-7. Starting at 32pt and stepping down (32, 28, 26, 24, 22, 20, 18, 17, 16, 15, 14), pick the LARGEST size where the total height needed fits within the usable height computed in step 4 — never a size that only fits some other, larger height. This is why the size must vary slide to slide — a slide with two short bullets should end up much larger than a slide with eight long ones.
-8. Use approximately 18-point as the preferred minimum; only go below 18pt (down to 14pt) if the slide's original text genuinely cannot fit at 18pt within the box from Phase 1. Never truncate or drop text, and never let text render outside the box's bounds to avoid shrinking further — 14pt is still smaller than every case you'll realistically hit once Phase 1 has maximized the box's height.
-9. After setting the computed size, also set text_frame.auto_size = MSO_AUTO_SIZE.TEXT_TO_FIT_SHAPE on that text box as a safety net only — it lets PowerPoint shrink further on open if your estimate was still slightly too large, but it is not a substitute for step 7; do not skip the explicit computation and rely on autofit alone, since autofit never enlarges text and tends to over-shrink.
-10. As a final check, confirm text_box_top >= title_bottom_edge and (text_box_top + text_box_height) <= callout_top_edge. If either is violated, your Phase 1 geometry was wrong — fix it, don't just shrink the font further.
+Phase 2 — choose a font size for that corrected box:
+4. Pick the largest size from this list that looks reasonable for how much text the slide has: 32, 28, 26, 24, 22, 20, 18, 17, 16 — a slide with two short bullets should end up much larger than a slide with eight long ones. Do not go below 16pt.
+5. Do not hand-derive exact wrapped-line math for this — an automated pass runs on the file after you finish and re-measures every text box against its own stored geometry, shrinking anything that doesn't actually fit. That pass only ever shrinks text, never enlarges it, so still pick the largest size that looks reasonable rather than defaulting to something small "to be safe."
+6. As a final check, confirm text_box_top >= title_bottom_edge and (text_box_top + text_box_height) <= callout_top_edge. If either is violated, your Phase 1 geometry was wrong — fix it, don't just shrink the font further.
 - Maintain consistent line spacing, paragraph spacing, and bullet indentation across slides (the font size varies, but the spacing multipliers/ratios should not).
 - Do not distort text boxes or stretch text horizontally — only change font size and box height (per Phase 1), never box width.
 
@@ -105,11 +100,6 @@ Add slide numbers to every slide except the title slide.
 - Use a readable but unobtrusive size.
 - The "Real-world example" callout spans across the bottom of the slide and is the element most likely to collide with the slide number. Before finalizing each slide, explicitly compare the slide number's bounding box against the callout's bounding box (and the logo's, and any image's). If they intersect, do not just leave it: either inset the callout box's width/right edge slightly so it stops short of the slide-number corner, or nudge the slide number to the small margin strip outside the callout's footprint — the two must never overlap.
 
-Final Autofit Safety Pass
-As the very last step before saving — after every slide's layout, sizing, and images are finished — loop over EVERY slide and EVERY shape that has a text_frame (title, body bullets, the real-world-example callout, slide numbers — all of them, on every slide, no exceptions) and explicitly set:
-  shape.text_frame.auto_size = MSO_AUTO_SIZE.TEXT_TO_FIT_SHAPE
-(import via "from pptx.enum.text import MSO_AUTO_SIZE"). Do this unconditionally for every text-bearing shape, even ones you already sized carefully in the steps above — it costs nothing and is the last line of defense: if any earlier size estimate was still slightly off, this makes PowerPoint shrink that box's text on open instead of letting it overflow. This is a mandatory, separate final pass over the whole deck, not something to fold into the per-slide work above and possibly skip on a few slides — write one loop that touches every shape in every slide, and run it last.
-
 Quality-Control Requirements
 Before returning the presentation, inspect every slide and confirm:
 - All original text is present.
@@ -122,8 +112,7 @@ Before returning the presentation, inspect every slide and confirm:
 - Every image is horizontally centered within its column, with no leftover space bunched on one side.
 - The logo appears on every slide.
 - Fonts and colors are consistent.
-- Body-text size was computed per slide using the sizing procedure above (not eyeballed) — auto-shrink is a backstop, not the primary mechanism.
-- The Final Autofit Safety Pass ran and every text-bearing shape on every slide has auto_size = MSO_AUTO_SIZE.TEXT_TO_FIT_SHAPE set, with no shape skipped.
+- Body-text size looks reasonable per slide (larger for short slides, smaller for dense ones).
 - The real-world example is clearly distinct.
 - Slide numbers are present, tucked close to the true bottom-right corner, and their bounding box does not intersect the real-world-example callout (or the logo, or any image).
 - The finished deck opens normally in Microsoft PowerPoint.
@@ -200,7 +189,10 @@ export async function checkBeautify(responseId: string): Promise<BeautifyResult>
   const fileResponse = await client.containers.files.content.retrieve(citation.file_id, {
     container_id: citation.container_id,
   });
-  const buffer = Buffer.from(await fileResponse.arrayBuffer());
+  const rawBuffer = Buffer.from(await fileResponse.arrayBuffer());
+  // The model's per-slide font-fit math is a best effort, not a guarantee — re-measure
+  // every text box against its own stored geometry and shrink anything that overflows.
+  const buffer = await enforceTextFitsInBox(rawBuffer);
   return { status: "completed", buffer };
 }
 
