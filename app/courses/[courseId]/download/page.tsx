@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { courseFileSlug } from "@/lib/format";
 
 interface ExportRow {
   id: string;
@@ -149,6 +150,8 @@ export default function DownloadPage() {
 
   if (!detail) return <p className="text-zinc-500">Loading…</p>;
 
+  const slug = courseFileSlug(detail.course.name);
+
   return (
     <div className="mx-auto max-w-2xl">
       <div className="mb-1 flex items-start justify-between gap-4">
@@ -190,6 +193,7 @@ export default function DownloadPage() {
             {beautifiedPptx ? (
               <a
                 href={beautifiedPptx.blobUrl}
+                download={`${slug}.pptx`}
                 className="rounded-md bg-foreground px-4 py-2 text-sm whitespace-nowrap text-background"
               >
                 Download
@@ -214,7 +218,7 @@ export default function DownloadPage() {
           {!beautifiedPptx && rawPptx && (
             <p className="mt-2 text-sm text-zinc-500">
               The AI redesign hasn&apos;t finished yet — you can still{" "}
-              <a href={rawPptx.blobUrl} className="underline">
+              <a href={rawPptx.blobUrl} download={`NB_${slug}.pptx`} className="underline">
                 download the unstyled original
               </a>
               .
@@ -233,6 +237,7 @@ export default function DownloadPage() {
             {scormExport ? (
               <a
                 href={scormExport.blobUrl}
+                download={`${slug}.zip`}
                 className="rounded-md bg-foreground px-4 py-2 text-sm whitespace-nowrap text-background"
               >
                 Download

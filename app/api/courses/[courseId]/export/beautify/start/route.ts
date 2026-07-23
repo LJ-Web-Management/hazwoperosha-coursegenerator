@@ -5,6 +5,7 @@ import { courses, slides, courseExports } from "@/lib/db/schema";
 import { buildPptx } from "@/lib/pptx";
 import { startBeautify } from "@/lib/beautify";
 import { uploadBuffer } from "@/lib/blob";
+import { courseFileSlug } from "@/lib/format";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -41,7 +42,7 @@ export async function POST(
 
   // Persist the unstyled original as a fallback export in case the AI redesign fails.
   const rawUrl = await uploadBuffer(
-    `courses/${courseId}/export/course.pptx`,
+    `courses/${courseId}/export/NB_${courseFileSlug(course.name)}.pptx`,
     pptxBuffer,
     "application/vnd.openxmlformats-officedocument.presentationml.presentation",
   );

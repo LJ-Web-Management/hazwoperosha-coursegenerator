@@ -4,6 +4,7 @@ import { getDb } from "@/lib/db/client";
 import { courses, courseExports } from "@/lib/db/schema";
 import { checkBeautify } from "@/lib/beautify";
 import { uploadBuffer } from "@/lib/blob";
+import { courseFileSlug } from "@/lib/format";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -58,7 +59,7 @@ export async function GET(
   }
 
   const url = await uploadBuffer(
-    `courses/${courseId}/export/course-beautified.pptx`,
+    `courses/${courseId}/export/${courseFileSlug(course.name)}.pptx`,
     result.buffer,
     "application/vnd.openxmlformats-officedocument.presentationml.presentation",
   );

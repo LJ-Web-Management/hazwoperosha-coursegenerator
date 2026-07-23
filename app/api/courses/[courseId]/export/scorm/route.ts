@@ -4,6 +4,7 @@ import { getDb } from "@/lib/db/client";
 import { courses, slides, courseExports } from "@/lib/db/schema";
 import { buildScormZip } from "@/lib/scorm/packager";
 import { uploadBuffer } from "@/lib/blob";
+import { courseFileSlug } from "@/lib/format";
 
 export const runtime = "nodejs";
 export const maxDuration = 90;
@@ -34,7 +35,11 @@ export async function POST(
   }
 
   const buf = await buildScormZip(course, slideRows);
-  const url = await uploadBuffer(`courses/${courseId}/export/course-scorm.zip`, buf, "application/zip");
+  const url = await uploadBuffer(
+    `courses/${courseId}/export/${courseFileSlug(course.name)}.zip`,
+    buf,
+    "application/zip",
+  );
 
   await db.insert(courseExports).values({
     courseId,
