@@ -260,6 +260,14 @@ export default function DownloadPage() {
           )}
           {scormError && <p className="mt-2 text-sm text-red-600">{scormError}</p>}
         </div>
+
+        {(beautifiedPptx || scormExport) && (
+          <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+            <span className="font-medium">Caution:</span> AI-generated content can contain mistakes.
+            Look through every slide of the downloaded file for factual, formatting, or compliance
+            errors before using it in training.
+          </div>
+        )}
       </div>
     </div>
   );
