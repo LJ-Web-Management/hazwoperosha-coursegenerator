@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-const MIN_MINUTES = 15;
+const MIN_MINUTES = 5;
 const MAX_MINUTES = 480;
 const MINUTE_STEPS = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
 const HOUR_OPTIONS = Array.from({ length: Math.floor(MAX_MINUTES / 60) + 1 }, (_, i) => i);
@@ -89,7 +89,7 @@ export default function NewCoursePage() {
           </div>
           {!durationValid && (
             <span className="text-xs text-red-600">
-              Duration must be between 15 minutes and 8 hours.
+              Duration must be between 5 minutes and 8 hours.
             </span>
           )}
         </div>

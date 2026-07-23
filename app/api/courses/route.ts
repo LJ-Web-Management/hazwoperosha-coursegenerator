@@ -9,7 +9,7 @@ export const runtime = "nodejs";
 
 const createSchema = z.object({
   name: z.string().min(1).max(200),
-  durationMinutes: z.number().int().min(15).max(480),
+  durationMinutes: z.number().int().min(5).max(480),
 });
 
 export async function GET() {
