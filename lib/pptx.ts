@@ -36,7 +36,7 @@ export async function buildPptx(course: CourseRow, slideRows: SlideRow[]): Promi
     bold: true,
     align: "center",
   });
-  title.addText("HAZWOPER / OSHA Safety Training", {
+  title.addText("Hazwoper Osha Training", {
     x: 0.5,
     y: 4.0,
     w: "90%",
