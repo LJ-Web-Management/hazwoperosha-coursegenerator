@@ -29,6 +29,7 @@ export default function DownloadPage() {
   const [scormError, setScormError] = useState<string | null>(null);
   const [retryingBeautify, setRetryingBeautify] = useState(false);
   const [restarting, setRestarting] = useState(false);
+  const [restartingBeautify, setRestartingBeautify] = useState(false);
   const beautifyStartedRef = useRef(false);
   const scormStartedRef = useRef(false);
 
@@ -117,6 +118,24 @@ export default function DownloadPage() {
     }
   }
 
+  async function handleRestartBeautify() {
+    if (
+      !confirm(
+        "Restart the AI redesign? This discards the current PowerPoint redesign and generates a new one from scratch using the latest design prompt.",
+      )
+    ) {
+      return;
+    }
+    setRestartingBeautify(true);
+    try {
+      beautifyStartedRef.current = true;
+      await fetch(`/api/courses/${params.courseId}/export/beautify/start`, { method: "POST" });
+      await load();
+    } finally {
+      setRestartingBeautify(false);
+    }
+  }
+
   async function retryBeautify() {
     setRetryingBeautify(true);
     try {
@@ -135,13 +154,24 @@ export default function DownloadPage() {
       <div className="mb-1 flex items-start justify-between gap-4">
         <h1 className="text-2xl font-semibold">{detail.course.name}</h1>
         {allComplete && (
-          <button
-            onClick={handleRestart}
-            disabled={restarting}
-            className="rounded-md border border-red-300 px-3 py-1.5 text-sm whitespace-nowrap text-red-600 disabled:opacity-50"
-          >
-            {restarting ? "Restarting…" : "Restart course"}
-          </button>
+          <div className="flex flex-col items-end gap-2">
+            <button
+              onClick={handleRestart}
+              disabled={restarting}
+              className="rounded-md border border-red-300 px-3 py-1.5 text-sm whitespace-nowrap text-red-600 disabled:opacity-50"
+            >
+              {restarting ? "Restarting…" : "Restart course"}
+            </button>
+            <button
+              onClick={handleRestartBeautify}
+              disabled={restartingBeautify || beautifyStatus === "running"}
+              className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm whitespace-nowrap disabled:opacity-50"
+            >
+              {restartingBeautify || beautifyStatus === "running"
+                ? "Redesigning…"
+                : "Restart beautify"}
+            </button>
+          </div>
         )}
       </div>
       <p className="mb-6 text-sm text-zinc-500">
