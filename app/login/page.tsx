@@ -66,80 +66,69 @@ function LoginForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex w-full max-w-sm flex-col gap-5 rounded-2xl border border-white/10 bg-white/[0.06] p-8 shadow-2xl shadow-black/40 backdrop-blur-xl"
+      className="flex w-full max-w-sm flex-col gap-5 overflow-hidden rounded-lg border border-zinc-200 shadow-sm"
     >
-      <div className="flex flex-col items-center gap-4 text-center">
-        <div className="rounded-xl bg-black/40 p-2.5 ring-1 ring-white/10">
-          <Image
-            src="/brand/hazwoper-logo.png"
-            alt="Hazwoper Osha Training LLC"
-            width={168}
-            height={31}
-            priority
-          />
-        </div>
-        <div>
-          <h1 className="text-lg font-semibold tracking-tight text-white">Course Generator</h1>
-          <p className="mt-1 text-sm text-white/50">Enter the shared password to continue.</p>
-        </div>
-      </div>
+      <div className="h-1 bg-accent" />
 
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor="password" className="text-xs font-medium tracking-wide text-white/40 uppercase">
-          Password
-        </label>
-        <div className="relative">
-          <LockIcon className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-white/35" />
-          <input
-            id="password"
-            type={showPassword ? "text" : "password"}
-            autoFocus
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="••••••••"
-            className="w-full rounded-lg border border-white/10 bg-black/30 py-2.5 pr-10 pl-10 text-sm text-white outline-none transition placeholder:text-white/25 focus:border-accent/60 focus:ring-2 focus:ring-accent/30"
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword((v) => !v)}
-            aria-label={showPassword ? "Hide password" : "Show password"}
-            className="absolute top-1/2 right-3 -translate-y-1/2 text-white/35 hover:text-white/70"
-          >
-            {showPassword ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
-          </button>
+      <div className="flex flex-col gap-5 px-8 pb-8">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <Image src="/brand/hazwoper-logo.png" alt="Hazwoper Osha Training LLC" width={168} height={31} priority />
+          <div>
+            <h1 className="text-xl font-semibold">Course Generator</h1>
+            <p className="mt-1 text-sm text-zinc-500">Enter the shared password to continue.</p>
+          </div>
         </div>
-      </div>
 
-      {error && (
-        <p className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm text-red-300">
-          {error}
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="password" className="text-xs font-medium tracking-wide text-zinc-500 uppercase">
+            Password
+          </label>
+          <div className="relative">
+            <LockIcon className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+            <input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              autoFocus
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Password"
+              className="w-full rounded-md border border-zinc-300 py-2 pr-10 pl-10 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              className="absolute top-1/2 right-3 -translate-y-1/2 text-zinc-400 hover:text-zinc-700"
+            >
+              {showPassword ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+            </button>
+          </div>
+        </div>
+
+        {error && (
+          <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>
+        )}
+
+        <button
+          type="submit"
+          disabled={loading || !password}
+          className="rounded-md bg-foreground px-4 py-2 text-sm text-background disabled:opacity-50"
+        >
+          {loading ? "Signing in…" : "Sign in"}
+        </button>
+
+        <p className="flex items-center justify-center gap-1.5 text-xs text-zinc-400">
+          <LockIcon className="h-3 w-3" />
+          Restricted access — authorized users only
         </p>
-      )}
-
-      <button
-        type="submit"
-        disabled={loading || !password}
-        className="rounded-lg bg-accent py-2.5 text-sm font-semibold text-navy-deep transition disabled:cursor-not-allowed disabled:opacity-40 enabled:hover:brightness-95"
-      >
-        {loading ? "Signing in…" : "Sign in"}
-      </button>
-
-      <p className="flex items-center justify-center gap-1.5 text-[11px] text-white/30">
-        <LockIcon className="h-3 w-3" />
-        Restricted access — authorized users only
-      </p>
+      </div>
     </form>
   );
 }
 
 export default function LoginPage() {
   return (
-    <div className="relative flex flex-1 items-center justify-center overflow-hidden bg-navy-deep p-6">
-      <div className="pointer-events-none absolute inset-0 [background:radial-gradient(circle_at_20%_20%,rgba(255,205,8,0.16),transparent_35%),radial-gradient(circle_at_80%_75%,rgba(255,205,8,0.1),transparent_35%)]" />
-      <div className="pointer-events-none absolute inset-0 opacity-[0.05] [background-image:linear-gradient(#fff_1px,transparent_1px),linear-gradient(90deg,#fff_1px,transparent_1px)] [background-size:32px_32px]" />
-      <div className="absolute inset-x-0 top-0 h-1.5 [background:repeating-linear-gradient(45deg,var(--accent)_0,var(--accent)_10px,#111_10px,#111_20px)]" />
-      <div className="absolute inset-x-0 bottom-0 h-1.5 [background:repeating-linear-gradient(45deg,var(--accent)_0,var(--accent)_10px,#111_10px,#111_20px)]" />
-
+    <div className="flex flex-1 items-center justify-center p-6">
       <Suspense>
         <LoginForm />
       </Suspense>
