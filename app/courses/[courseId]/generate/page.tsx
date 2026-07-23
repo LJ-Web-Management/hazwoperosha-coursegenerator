@@ -82,15 +82,39 @@ export default function GeneratePage() {
       setTotal(startData.totalSlides);
 
       const worker = async () => {
+        let consecutiveErrors = 0;
         while (!stopRef.current) {
-          const res = await fetch(`/api/courses/${courseId}/generation/slide`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ lockToken: lockTokenRef.current }),
-          });
-          const data = await res.json();
+          // A single request failing (network hiccup, a slow AI call timing out server-side and
+          // returning a non-JSON error) must not take down every other worker — each worker
+          // handles its own errors and keeps going, so Promise.all only settles once every
+          // worker has genuinely finished, not the moment any one request has trouble.
+          let status: number;
+          let data: { done?: boolean; completed?: number; total?: number; error?: string };
+          try {
+            const res = await fetch(`/api/courses/${courseId}/generation/slide`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ lockToken: lockTokenRef.current }),
+            });
+            status = res.status;
+            data = await res.json();
+          } catch (err) {
+            consecutiveErrors += 1;
+            console.error("Slide generation request failed", err);
+            if (consecutiveErrors >= 3) {
+              setFatalError(
+                err instanceof Error
+                  ? `Repeated request failures: ${err.message}`
+                  : "Repeated request failures while generating slides.",
+              );
+              break;
+            }
+            await new Promise((resolve) => setTimeout(resolve, 2000));
+            continue;
+          }
+          consecutiveErrors = 0;
 
-          if (res.status === 409) {
+          if (status === 409) {
             setLockError(data.error ?? "Lock lost — generation was paused.");
             stopRef.current = true;
             break;
@@ -143,7 +167,12 @@ export default function GeneratePage() {
     }
   }
 
-  const permanentlyFailed = slides.filter((s) => s.status === "failed" && s.attemptCount >= 3);
+  // Includes slides stuck at in_progress with attempt_count already maxed out — e.g. a server
+  // timeout killed the last attempt before it could mark itself failed — which are no longer
+  // reclaimable by the normal worker loop and need the same manual reset.
+  const permanentlyFailed = slides.filter(
+    (s) => (s.status === "failed" || s.status === "in_progress") && s.attemptCount >= 3,
+  );
 
   // Resets don't call the AI — they just clear the slide back to "pending" so the normal
   // worker loop (Start/Resume generation) picks it up again instead of retrying inline.
@@ -229,7 +258,7 @@ export default function GeneratePage() {
       {permanentlyFailed.length > 0 && (
         <div className="mb-6 rounded-lg border border-red-300 p-4">
           <div className="mb-2 flex items-center justify-between">
-            <h2 className="font-semibold">Slides that failed after 3 attempts</h2>
+            <h2 className="font-semibold">Slides that are stuck or failed after 3 attempts</h2>
             <button
               onClick={resetAllFailed}
               disabled={running || isGenerating}
@@ -246,7 +275,8 @@ export default function GeneratePage() {
             {permanentlyFailed.map((s) => (
               <li key={s.id} className="flex items-center justify-between text-sm">
                 <span>
-                  Slide {s.slideIndex + 1}: {s.topicTitle} — {s.errorMessage}
+                  Slide {s.slideIndex + 1}: {s.topicTitle} —{" "}
+                  {s.errorMessage ?? (s.status === "in_progress" ? "stuck in progress" : "failed")}
                 </span>
                 <button
                   onClick={() => resetSlide(s.id)}

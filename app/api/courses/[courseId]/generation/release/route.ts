@@ -26,7 +26,9 @@ export async function POST(
   const remaining = await db
     .select({ count: drizzleSql<number>`count(*)` })
     .from(slides)
-    .where(and(eq(slides.courseId, courseId), inArray(slides.status, ["pending", "failed"])));
+    .where(
+      and(eq(slides.courseId, courseId), inArray(slides.status, ["pending", "failed", "in_progress"])),
+    );
 
   const allDone = Number(remaining[0]?.count ?? 0) === 0;
   await db

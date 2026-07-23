@@ -7,7 +7,9 @@ import { renewLock } from "@/lib/lock";
 import { generateSlideText, generateSlideImage } from "@/lib/slide-generation";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+// Two sequential AI calls (text, then image) per slide — 60s was too tight and caused
+// timeouts (non-JSON error responses) that cascaded into other generation bugs.
+export const maxDuration = 120;
 
 const MAX_ATTEMPTS = 3;
 const STALE_IN_PROGRESS_MINUTES = 3;
@@ -156,8 +158,23 @@ export async function POST(
       .set({ status: "failed", errorMessage: message.slice(0, 500), updatedAt: new Date() })
       .where(eq(slides.id, target.id));
 
+    const remaining = await db
+      .select({ count: drizzleSql<number>`count(*)` })
+      .from(slides)
+      .where(
+        and(eq(slides.courseId, courseId), inArray(slides.status, ["pending", "failed", "in_progress"])),
+      );
+    const total = await db
+      .select({ count: drizzleSql<number>`count(*)` })
+      .from(slides)
+      .where(eq(slides.courseId, courseId));
+    const totalCount = Number(total[0]?.count ?? 0);
+    const remainingCount = Number(remaining[0]?.count ?? 0);
+
     return NextResponse.json({
       done: false,
+      completed: totalCount - remainingCount,
+      total: totalCount,
       retryable: target.attempt_count < MAX_ATTEMPTS,
       slide: { id: target.id, slideIndex: target.slide_index, error: message },
     });

@@ -27,6 +27,7 @@ export async function GET(
       status: slides.status,
       attemptCount: slides.attemptCount,
       errorMessage: slides.errorMessage,
+      updatedAt: slides.updatedAt,
     })
     .from(slides)
     .where(eq(slides.courseId, courseId))
@@ -34,7 +35,12 @@ export async function GET(
 
   const total = rows.length;
   const completed = rows.filter((r) => r.status === "complete").length;
-  const permanentlyFailed = rows.filter((r) => r.status === "failed" && r.attemptCount >= 3).length;
+  // A slide can also get stuck at in_progress with attempt_count already maxed out — e.g. its
+  // last attempt was killed by a server timeout before it could mark itself failed. It's no
+  // longer reclaimable by the normal worker loop, so treat it the same as a failed slide.
+  const permanentlyFailed = rows.filter(
+    (r) => (r.status === "failed" || r.status === "in_progress") && r.attemptCount >= 3,
+  ).length;
 
   return NextResponse.json({
     courseStatus: course?.status ?? null,
