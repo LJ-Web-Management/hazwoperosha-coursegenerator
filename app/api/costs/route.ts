@@ -51,25 +51,27 @@ export async function GET(request: Request) {
         : inArray(apiUsage.operation, ["slide_text", "slide_image"]),
     );
 
-  const beautifyRows = await db
-    .select({
-      costUsd: apiUsage.costUsd,
-      slideCount: sql<number>`(select count(*) from slides where slides.course_id = ${apiUsage.courseId})`,
-    })
-    .from(apiUsage)
-    .where(
-      since
-        ? and(eq(apiUsage.operation, "beautify"), gte(apiUsage.createdAt, since))
-        : eq(apiUsage.operation, "beautify"),
-    );
+  async function avgCostPerSlideFor(operation: string): Promise<number> {
+    const rows = await db
+      .select({
+        costUsd: apiUsage.costUsd,
+        slideCount: sql<number>`(select count(*) from slides where slides.course_id = ${apiUsage.courseId})`,
+      })
+      .from(apiUsage)
+      .where(
+        since
+          ? and(eq(apiUsage.operation, operation), gte(apiUsage.createdAt, since))
+          : eq(apiUsage.operation, operation),
+      );
 
-  const perSlideBeautifyCosts = beautifyRows
-    .filter((r) => Number(r.slideCount) > 0)
-    .map((r) => Number(r.costUsd) / Number(r.slideCount));
-  const avgCostPerSlideBeautify =
-    perSlideBeautifyCosts.length > 0
-      ? perSlideBeautifyCosts.reduce((a, b) => a + b, 0) / perSlideBeautifyCosts.length
-      : 0;
+    const perSlideCosts = rows
+      .filter((r) => Number(r.slideCount) > 0)
+      .map((r) => Number(r.costUsd) / Number(r.slideCount));
+    return perSlideCosts.length > 0 ? perSlideCosts.reduce((a, b) => a + b, 0) / perSlideCosts.length : 0;
+  }
+
+  const avgCostPerSlideBeautify = await avgCostPerSlideFor("beautify");
+  const avgCostPerSlideOutline = await avgCostPerSlideFor("outline");
 
   const slideTextCount = Number(fullGenRow?.slideTextCount ?? 0);
   const avgCostPerSlideFullGen = slideTextCount > 0 ? Number(fullGenRow.totalCost) / slideTextCount : 0;
@@ -80,5 +82,6 @@ export async function GET(request: Request) {
     openaiTotalUsd: Number(openaiRow?.total ?? 0),
     avgCostPerSlideFullGen,
     avgCostPerSlideBeautify,
+    avgCostPerSlideOutline,
   });
 }

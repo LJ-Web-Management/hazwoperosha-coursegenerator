@@ -61,6 +61,7 @@ For every content slide:
 - Use consistent image framing, such as a subtle border or clean rectangular crop.
 
 Titles
+Every content slide's title arrives already horizontally centered (paragraph alignment = center) across the slide width. Preserve that centered alignment — do not left-align or right-align it, and do not change it when you touch font size or box height for Phase 1 above.
 Use a consistent title style throughout the presentation.
 - Titles should be prominent and easy to read.
 - Use bold, professional typography.
@@ -77,14 +78,10 @@ Make the "Real-world example" section visually distinct from the instructional b
 - Clearly emphasize the words "Real-world example".
 
 Logo
-Place the attached HAZWOPER Training LLC logo on every slide.
-- Use the same location and approximate size throughout the presentation.
-- Prefer the upper-right corner or another unobtrusive location.
-- Do not cover titles, text, images, or callout boxes.
-- Maintain the logo's original aspect ratio.
-- Do not stretch, recolor, crop, or distort the logo.
-- On the title slide, the logo may be larger and more prominent.
-- On content slides, use a smaller, consistent logo treatment.
+Every content slide already has the HAZWOPER Training LLC logo placed in the upper-right corner at the correct size and position, tucked above the title. Do not move, resize, duplicate, restyle, recolor, crop, or delete this logo on content slides — leave that picture shape exactly as it arrives. Only the title slide needs the logo added by you (it doesn't have one yet):
+- On the title slide, add the attached logo, larger and more prominent, featured as part of the design.
+- Maintain the logo's original aspect ratio; do not stretch, recolor, crop, or distort it.
+- Do not cover the title-slide title or subtitle with it.
 
 Title Slide
 Give the title slide a stronger and more polished design than the content slides.
@@ -111,7 +108,8 @@ Before returning the presentation, inspect every slide and confirm:
 - All images remain on their original slides.
 - Every picture's displayed aspect ratio (after any crop) is within 1% of its native aspect ratio — recheck any image that looked stretched, cropped oddly, or squeezed in the original file too.
 - Every image is horizontally centered within its column, with no leftover space bunched on one side.
-- The logo appears on every slide.
+- The logo appears on every slide — untouched in its original upper-right position on content slides, and added prominently on the title slide.
+- Every content slide's title is still horizontally centered.
 - Fonts and colors are consistent.
 - Body-text size looks reasonable per slide (larger for short slides, smaller for dense ones).
 - The real-world example is clearly distinct.

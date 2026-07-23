@@ -17,6 +17,7 @@ interface CostSummary {
   openaiTotalUsd: number;
   avgCostPerSlideFullGen: number;
   avgCostPerSlideBeautify: number;
+  avgCostPerSlideOutline: number;
 }
 
 function CostCard({ label, value, hint }: { label: string; value: string; hint: string }) {
@@ -100,6 +101,11 @@ export default function CostsDashboardPage() {
             label="Avg. cost per slide (beautify)"
             value={formatUsd(summary.avgCostPerSlideBeautify)}
             hint="Redesign cost amortized across a deck's slides"
+          />
+          <CostCard
+            label="Avg. cost per slide (outline)"
+            value={formatUsd(summary.avgCostPerSlideOutline)}
+            hint="Outline cost amortized across a deck's slides"
           />
         </div>
       )}

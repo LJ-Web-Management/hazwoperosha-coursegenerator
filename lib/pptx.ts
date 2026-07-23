@@ -1,9 +1,16 @@
+import { readFileSync } from "fs";
+import path from "path";
 import PptxGenJS from "pptxgenjs";
 import { fetchAsBuffer } from "@/lib/blob";
 import type { courses, slides } from "@/lib/db/schema";
 
 export type CourseRow = typeof courses.$inferSelect;
 export type SlideRow = typeof slides.$inferSelect;
+
+const LOGO_PATH = path.join(process.cwd(), "public/brand/hazwoper-logo.png");
+// Native logo asset is 280x51 (ratio ~5.49); frame matches that ratio so `contain` doesn't letterbox.
+const LOGO_W = 1.3;
+const LOGO_H = 0.24;
 
 async function fetchImagesInBatches(
   slideRows: SlideRow[],
@@ -47,16 +54,27 @@ export async function buildPptx(course: CourseRow, slideRows: SlideRow[]): Promi
   });
 
   const imageBuffers = await fetchImagesInBatches(slideRows);
+  const logoBuf = readFileSync(LOGO_PATH);
+  const logoDataUri = `data:image/png;base64,${logoBuf.toString("base64")}`;
 
   for (const slide of slideRows) {
     const s = pres.addSlide();
+    s.addImage({
+      data: logoDataUri,
+      x: 13.33 - 0.15 - LOGO_W,
+      y: 0.15,
+      w: LOGO_W,
+      h: LOGO_H,
+      sizing: { type: "contain", w: LOGO_W, h: LOGO_H },
+    });
     s.addText(slide.title ?? slide.topicTitle, {
       x: 0.4,
-      y: 0.3,
+      y: 0.5,
       w: "92%",
-      h: 0.8,
+      h: 0.7,
       fontSize: 28,
       bold: true,
+      align: "center",
     });
 
     const hasImage = Boolean(slide.imageBlobUrl && !slide.imageFallbackTextOnly);
