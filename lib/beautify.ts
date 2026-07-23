@@ -54,6 +54,7 @@ For every content slide:
   (a) fit the image entirely within the frame preserving native_ratio (shrink one dimension so nothing is cut off, leaving a small margin rather than stretching to fill the frame exactly), or
   (b) fill the frame edge-to-edge by proportionally cropping the overflow with shape.crop_left / crop_right / crop_top / crop_bottom (values between 0 and 1) — never by scaling width and height independently.
 - After resizing any picture, verify new_width / new_height is within 1% of native_ratio (accounting for any crop you applied) before moving to the next slide.
+- Horizontally center each image within its right-hand column (the space between the body text box's right edge and the slide's right margin), rather than left- or right-aligning it. This matters most when the fitted image, after preserving its native aspect ratio, ends up narrower than the column — center the leftover horizontal space evenly on both sides instead of pushing the image to one edge.
 - Use consistent image framing, such as a subtle border or clean rectangular crop.
 
 Titles
@@ -93,9 +94,9 @@ Give the title slide a stronger and more polished design than the content slides
 
 Slide Numbers
 Add slide numbers to every slide except the title slide.
-- Place them consistently in the lower-right corner.
+- Place them tucked into the true lower-right corner of the slide, close to the physical edge — about 0.1 inch from the bottom edge and 0.15 inch from the right edge. Do not give it a larger margin than that; a bigger margin is what pushes it into the callout box's footprint.
 - Use a readable but unobtrusive size.
-- Make sure they do not overlap the logo, examples, images, or existing content.
+- The "Real-world example" callout spans across the bottom of the slide and is the element most likely to collide with the slide number. Before finalizing each slide, explicitly compare the slide number's bounding box against the callout's bounding box (and the logo's, and any image's). If they intersect, do not just leave it: either inset the callout box's width/right edge slightly so it stops short of the slide-number corner, or nudge the slide number to the small margin strip outside the callout's footprint — the two must never overlap.
 
 Quality-Control Requirements
 Before returning the presentation, inspect every slide and confirm:
@@ -106,11 +107,12 @@ Before returning the presentation, inspect every slide and confirm:
 - No text overlaps another element.
 - All images remain on their original slides.
 - Every picture's displayed aspect ratio (after any crop) is within 1% of its native aspect ratio — recheck any image that looked stretched, cropped oddly, or squeezed in the original file too.
+- Every image is horizontally centered within its column, with no leftover space bunched on one side.
 - The logo appears on every slide.
 - Fonts and colors are consistent.
 - Body-text size was computed per slide using the sizing procedure above (not eyeballed), and no body text box relies on auto-shrink alone to avoid overflow.
 - The real-world example is clearly distinct.
-- Slide numbers are present and correctly positioned.
+- Slide numbers are present, tucked close to the true bottom-right corner, and their bounding box does not intersect the real-world-example callout (or the logo, or any image).
 - The finished deck opens normally in Microsoft PowerPoint.
 
 Return only the completed editable .pptx file. Do not return a PDF, screenshots, a written design proposal, or instructions for manually making the changes.`;
