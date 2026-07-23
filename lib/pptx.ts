@@ -71,12 +71,15 @@ export async function buildPptx(course: CourseRow, slideRows: SlideRow[]): Promi
 
     const imgBuf = hasImage ? imageBuffers.get(slide.id) : undefined;
     if (imgBuf) {
+      // Gemini renders these at 16:9, so `contain` letterboxes them inside the square
+      // frame instead of stretching to fill it (pptxgenjs's default `addImage` behavior).
       s.addImage({
         data: `data:image/png;base64,${imgBuf.toString("base64")}`,
         x: 7.2,
         y: 1.3,
         w: 5.6,
         h: 5.6,
+        sizing: { type: "contain", w: 5.6, h: 5.6 },
       });
     }
 

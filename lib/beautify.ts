@@ -18,16 +18,16 @@ Mandatory Content Rules
 6. Preserve all compliance-related terminology, citations, standards, numbers, and examples exactly as written.
 
 Body Text Sizing
-Adjust the body-text font size individually on each slide so the text properly fills the available text area.
-- Increase the font size when a slide has less text.
-- Reduce the font size when a slide has more text.
-- Do not use one fixed body-text size throughout the entire presentation.
-- Avoid text overflow, clipping, crowding, or text running underneath other objects.
-- Keep body text as large as reasonably possible.
-- Use approximately 18-point text as the preferred minimum.
-- Only go below 18 points when absolutely necessary to keep all original text readable.
-- Maintain consistent line spacing, paragraph spacing, and bullet indentation.
-- Do not distort text boxes or stretch text horizontally.
+You cannot visually preview the rendered slide, so compute each slide's body font size explicitly instead of guessing — do not just pick a size that "looks about right."
+For every slide's body text box, follow this procedure in your Python code:
+1. Read the text box's width and height in points (EMU / 12700), then subtract its internal margins (text_frame margin_left/right/top/bottom, or 0.1 inch per side if unset) to get the usable width and height.
+2. For a candidate font size, estimate the wrapped line count of each bullet as ceil((len(bullet_text) * avg_char_width_at_size) / usable_width), where avg_char_width_at_size ≈ 0.5 * font_size_pt for a typical sans-serif body font. Sum the wrapped-line counts across all bullets (each bullet also gets +1 line of paragraph spacing) to get the total lines needed at that size.
+3. Multiply total lines needed by the line height (≈ 1.2 * font_size_pt) to get the total height needed at that candidate size.
+4. Starting at 32pt and stepping down (32, 28, 26, 24, 22, 20, 18, 17, 16, 15, 14), pick the LARGEST size where the total height needed fits within the usable height. This is why the size must vary slide to slide — a slide with two short bullets should end up much larger than a slide with eight long ones.
+5. Use approximately 18-point as the preferred minimum; only go below 18pt (down to 14pt) if the slide's original text genuinely cannot fit at 18pt within its box — never truncate, shrink the box, or drop text to avoid this.
+6. After setting the computed size, also set text_frame.auto_size = MSO_AUTO_SIZE.TEXT_TO_FIT_SHAPE on that text box as a safety net only — it lets PowerPoint shrink further on open if your estimate was still slightly too large, but it is not a substitute for step 4; do not skip the explicit computation and rely on autofit alone, since autofit never enlarges text and tends to over-shrink.
+- Maintain consistent line spacing, paragraph spacing, and bullet indentation across slides (the font size varies, but the spacing multipliers/ratios should not).
+- Do not distort text boxes or stretch text horizontally — only change font size and, if truly necessary, the text box height, never its width.
 
 Design Theme
 Apply a clean, professional corporate safety-training design based on the attached HAZWOPER Training LLC logo.
@@ -49,8 +49,11 @@ For every content slide:
 - Use consistent positioning from slide to slide.
 - Maintain adequate white space.
 - Ensure text does not overlap the image, logo, slide number, or callout.
-- Resize or crop existing images proportionally when needed.
-- Do not stretch or distort images.
+- Some source images may already be stretched out of their native proportions (e.g. a widescreen image squeezed into a square frame) — correct this rather than preserving it.
+- Never independently set a picture shape's width and height to arbitrary values that change its native aspect ratio. Before resizing or repositioning any picture, first read its native pixel dimensions (shape.image.size) and compute native_ratio = native_width / native_height. Then, for the target frame you're placing it in, either:
+  (a) fit the image entirely within the frame preserving native_ratio (shrink one dimension so nothing is cut off, leaving a small margin rather than stretching to fill the frame exactly), or
+  (b) fill the frame edge-to-edge by proportionally cropping the overflow with shape.crop_left / crop_right / crop_top / crop_bottom (values between 0 and 1) — never by scaling width and height independently.
+- After resizing any picture, verify new_width / new_height is within 1% of native_ratio (accounting for any crop you applied) before moving to the next slide.
 - Use consistent image framing, such as a subtle border or clean rectangular crop.
 
 Titles
@@ -102,10 +105,10 @@ Before returning the presentation, inspect every slide and confirm:
 - No text is cut off or overflowing.
 - No text overlaps another element.
 - All images remain on their original slides.
-- Images are not distorted.
+- Every picture's displayed aspect ratio (after any crop) is within 1% of its native aspect ratio — recheck any image that looked stretched, cropped oddly, or squeezed in the original file too.
 - The logo appears on every slide.
 - Fonts and colors are consistent.
-- Body-text size is adjusted slide by slide.
+- Body-text size was computed per slide using the sizing procedure above (not eyeballed), and no body text box relies on auto-shrink alone to avoid overflow.
 - The real-world example is clearly distinct.
 - Slide numbers are present and correctly positioned.
 - The finished deck opens normally in Microsoft PowerPoint.
