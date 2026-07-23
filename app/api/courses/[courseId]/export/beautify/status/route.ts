@@ -43,7 +43,7 @@ export async function GET(
     return NextResponse.json({ status: "failed", error: "Missing response id" });
   }
 
-  const result = await checkBeautify(course.beautifyResponseId);
+  const result = await checkBeautify(courseId, course.beautifyResponseId);
 
   if (result.status === "running") {
     return NextResponse.json({ status: "running" });

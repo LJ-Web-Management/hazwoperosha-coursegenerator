@@ -7,8 +7,10 @@ import {
   boolean,
   bigint,
   smallint,
+  numeric,
   timestamp,
   uniqueIndex,
+  index,
   check,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
@@ -94,3 +96,24 @@ export const courseExports = pgTable("course_exports", {
   fileSizeBytes: bigint("file_size_bytes", { mode: "number" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+// Cost is kept even if the course is deleted (dashboard totals are a spend record, not a
+// per-course artifact), so courseId is nullable with onDelete: set null rather than cascade.
+export const apiUsage = pgTable(
+  "api_usage",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    courseId: uuid("course_id").references(() => courses.id, { onDelete: "set null" }),
+    provider: text("provider").notNull(), // 'openai' | 'gemini'
+    operation: text("operation").notNull(), // 'outline' | 'slide_text' | 'slide_image' | 'beautify'
+    model: text("model").notNull(),
+    inputTokens: integer("input_tokens"),
+    outputTokens: integer("output_tokens"),
+    costUsd: numeric("cost_usd", { precision: 12, scale: 6, mode: "number" }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("api_usage_course_idx").on(table.courseId),
+    index("api_usage_created_at_idx").on(table.createdAt),
+  ],
+);

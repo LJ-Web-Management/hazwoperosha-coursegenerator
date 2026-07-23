@@ -38,7 +38,7 @@ export async function POST(
 
   let revised;
   try {
-    revised = await reviseOutline(current.modules, parsed.data.feedback);
+    revised = await reviseOutline(courseId, current.modules, parsed.data.feedback);
   } catch (err) {
     console.error("Failed to revise outline", err);
     return NextResponse.json({ error: "Failed to revise outline" }, { status: 502 });

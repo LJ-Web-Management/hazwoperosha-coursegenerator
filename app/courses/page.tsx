@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { formatUsd } from "@/lib/format";
 
 interface CourseSummary {
   id: string;
@@ -9,6 +10,7 @@ interface CourseSummary {
   requestedDurationMinutes: number;
   status: string;
   createdAt: string;
+  totalCostUsd: number;
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -123,6 +125,9 @@ export default function CoursesPage() {
                 {STATUS_LABEL[course.status] ?? course.status}
               </span>
             </Link>
+            <span className="text-sm text-zinc-500" title="Total API cost for this course">
+              {formatUsd(course.totalCostUsd)}
+            </span>
             <button
               onClick={() => handleDelete(course)}
               disabled={deletingId === course.id}

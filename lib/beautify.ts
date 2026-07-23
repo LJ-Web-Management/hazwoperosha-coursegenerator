@@ -4,6 +4,7 @@ import { toFile } from "openai/uploads";
 import type { Response as OpenAIResponse } from "openai/resources/responses/responses";
 import { getOpenAI, textModel } from "@/lib/openai";
 import { enforceTextFitsInBox } from "@/lib/pptxAutofit";
+import { recordOpenAiUsage } from "@/lib/usage";
 
 const LOGO_PATH = path.join(process.cwd(), "public/brand/hazwoper-logo.png");
 
@@ -163,12 +164,22 @@ export type BeautifyResult =
   | { status: "completed"; buffer: Buffer }
   | { status: "failed"; error: string };
 
-export async function checkBeautify(responseId: string): Promise<BeautifyResult> {
+export async function checkBeautify(courseId: string, responseId: string): Promise<BeautifyResult> {
   const client = getOpenAI();
   const response = await client.responses.retrieve(responseId);
 
   if (response.status === "queued" || response.status === "in_progress") {
     return { status: "running" };
+  }
+
+  if (response.usage) {
+    await recordOpenAiUsage({
+      courseId,
+      operation: "beautify",
+      model: textModel(),
+      inputTokens: response.usage.input_tokens,
+      outputTokens: response.usage.output_tokens,
+    });
   }
 
   if (response.status !== "completed") {

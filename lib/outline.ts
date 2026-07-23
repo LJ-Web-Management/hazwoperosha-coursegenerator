@@ -5,16 +5,28 @@ import {
   buildInitialOutlinePrompt,
   buildRevisionPrompt,
 } from "@/lib/prompts";
+import { recordOpenAiUsage } from "@/lib/usage";
 import type { OutlineContent, OutlineModule } from "@/lib/types";
 
-async function runOutlineResponse(input: string): Promise<OutlineContent> {
+async function runOutlineResponse(courseId: string, input: string): Promise<OutlineContent> {
   const client = getOpenAI();
+  const model = textModel();
   const response = await client.responses.create({
-    model: textModel(),
+    model,
     instructions: OUTLINE_SYSTEM_PROMPT,
     input,
     text: { format: { type: "json_schema", ...OUTLINE_JSON_SCHEMA } },
   });
+
+  if (response.usage) {
+    await recordOpenAiUsage({
+      courseId,
+      operation: "outline",
+      model,
+      inputTokens: response.usage.input_tokens,
+      outputTokens: response.usage.output_tokens,
+    });
+  }
 
   const raw = response.output_text;
   if (!raw) {
@@ -25,15 +37,17 @@ async function runOutlineResponse(input: string): Promise<OutlineContent> {
 }
 
 export async function generateInitialOutline(
+  courseId: string,
   courseName: string,
   durationMinutes: number,
 ): Promise<OutlineContent> {
-  return runOutlineResponse(buildInitialOutlinePrompt(courseName, durationMinutes));
+  return runOutlineResponse(courseId, buildInitialOutlinePrompt(courseName, durationMinutes));
 }
 
 export async function reviseOutline(
+  courseId: string,
   previousModules: OutlineModule[],
   feedback: string,
 ): Promise<OutlineContent> {
-  return runOutlineResponse(buildRevisionPrompt(previousModules, feedback));
+  return runOutlineResponse(courseId, buildRevisionPrompt(previousModules, feedback));
 }

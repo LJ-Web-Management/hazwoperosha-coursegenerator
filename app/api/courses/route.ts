@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getDb } from "@/lib/db/client";
-import { courses, outlineVersions } from "@/lib/db/schema";
+import { courses, outlineVersions, apiUsage } from "@/lib/db/schema";
 import { generateInitialOutline } from "@/lib/outline";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 
 export const runtime = "nodejs";
 
@@ -15,7 +15,20 @@ const createSchema = z.object({
 export async function GET() {
   const db = getDb();
   const rows = await db.select().from(courses).orderBy(desc(courses.createdAt));
-  return NextResponse.json({ courses: rows });
+
+  const costRows = await db
+    .select({
+      courseId: apiUsage.courseId,
+      total: sql<number>`coalesce(sum(${apiUsage.costUsd}), 0)`,
+    })
+    .from(apiUsage)
+    .groupBy(apiUsage.courseId);
+  const costByCourse = new Map(
+    costRows.filter((r) => r.courseId).map((r) => [r.courseId as string, Number(r.total)]),
+  );
+
+  const withCost = rows.map((c) => ({ ...c, totalCostUsd: costByCourse.get(c.id) ?? 0 }));
+  return NextResponse.json({ courses: withCost });
 }
 
 export async function POST(request: Request) {
@@ -33,7 +46,7 @@ export async function POST(request: Request) {
     .returning();
 
   try {
-    const outline = await generateInitialOutline(name, durationMinutes);
+    const outline = await generateInitialOutline(course.id, name, durationMinutes);
     const [version] = await db
       .insert(outlineVersions)
       .values({

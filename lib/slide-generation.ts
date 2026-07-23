@@ -9,6 +9,7 @@ import {
   sanitizeImagePrompt,
 } from "@/lib/prompts";
 import { uploadBuffer } from "@/lib/blob";
+import { recordOpenAiUsage, recordGeminiUsage } from "@/lib/usage";
 
 interface SlideTextResult {
   title: string;
@@ -18,18 +19,30 @@ interface SlideTextResult {
 }
 
 export async function generateSlideText(params: {
+  courseId: string;
   courseName: string;
   moduleTitle: string;
   topicTitle: string;
   neighboringTitles: string[];
 }): Promise<SlideTextResult> {
   const client = getOpenAI();
+  const model = textModel();
   const response = await client.responses.create({
-    model: textModel(),
+    model,
     instructions: SLIDE_SYSTEM_PROMPT,
     input: buildSlidePrompt(params),
     text: { format: { type: "json_schema", ...SLIDE_JSON_SCHEMA } },
   });
+
+  if (response.usage) {
+    await recordOpenAiUsage({
+      courseId: params.courseId,
+      operation: "slide_text",
+      model,
+      inputTokens: response.usage.input_tokens,
+      outputTokens: response.usage.output_tokens,
+    });
+  }
 
   const raw = response.output_text;
   if (!raw) {
@@ -50,16 +63,27 @@ class GeminiFilteredError extends Error {
   }
 }
 
-async function generateImageBytes(prompt: string): Promise<Buffer> {
+async function generateImageBytes(courseId: string, prompt: string): Promise<Buffer> {
   const client = getGemini();
+  const model = geminiImageModel();
   const result = await client.models.generateContent({
-    model: geminiImageModel(),
+    model,
     contents: prompt,
     config: {
       responseModalities: [Modality.TEXT, Modality.IMAGE],
       imageConfig: { aspectRatio: "16:9" },
     },
   });
+
+  if (result.usageMetadata) {
+    await recordGeminiUsage({
+      courseId,
+      operation: "slide_image",
+      model,
+      inputTokens: result.usageMetadata.promptTokenCount ?? 0,
+      outputTokens: result.usageMetadata.candidatesTokenCount ?? 0,
+    });
+  }
 
   const blockReason = result.promptFeedback?.blockReason;
   const finishReason = result.candidates?.[0]?.finishReason;
@@ -88,7 +112,7 @@ export async function generateSlideImage(
 
   for (let i = 0; i < attempts.length; i++) {
     try {
-      const bytes = await generateImageBytes(attempts[i]);
+      const bytes = await generateImageBytes(courseId, attempts[i]);
       const url = await uploadBuffer(
         `courses/${courseId}/slides/${slideIndex}.png`,
         bytes,

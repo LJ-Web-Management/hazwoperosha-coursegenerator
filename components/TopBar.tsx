@@ -29,6 +29,13 @@ export default function TopBar() {
             Course List
           </Link>
           <span>-</span>
+          <Link
+            href="/courses/costs"
+            className="hover:text-zinc-900 hover:underline decoration-accent decoration-2 underline-offset-4"
+          >
+            Costs
+          </Link>
+          <span>-</span>
           <button
             onClick={logout}
             className="hover:text-zinc-900 hover:underline decoration-accent decoration-2 underline-offset-4"

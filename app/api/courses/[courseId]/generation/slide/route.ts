@@ -105,6 +105,7 @@ export async function POST(
 
   try {
     const text = await generateSlideText({
+      courseId,
       courseName: course.name,
       moduleTitle: target.module_title,
       topicTitle: target.topic_title,
