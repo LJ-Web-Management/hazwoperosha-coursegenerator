@@ -105,6 +105,11 @@ Add slide numbers to every slide except the title slide.
 - Use a readable but unobtrusive size.
 - The "Real-world example" callout spans across the bottom of the slide and is the element most likely to collide with the slide number. Before finalizing each slide, explicitly compare the slide number's bounding box against the callout's bounding box (and the logo's, and any image's). If they intersect, do not just leave it: either inset the callout box's width/right edge slightly so it stops short of the slide-number corner, or nudge the slide number to the small margin strip outside the callout's footprint — the two must never overlap.
 
+Final Autofit Safety Pass
+As the very last step before saving — after every slide's layout, sizing, and images are finished — loop over EVERY slide and EVERY shape that has a text_frame (title, body bullets, the real-world-example callout, slide numbers — all of them, on every slide, no exceptions) and explicitly set:
+  shape.text_frame.auto_size = MSO_AUTO_SIZE.TEXT_TO_FIT_SHAPE
+(import via "from pptx.enum.text import MSO_AUTO_SIZE"). Do this unconditionally for every text-bearing shape, even ones you already sized carefully in the steps above — it costs nothing and is the last line of defense: if any earlier size estimate was still slightly off, this makes PowerPoint shrink that box's text on open instead of letting it overflow. This is a mandatory, separate final pass over the whole deck, not something to fold into the per-slide work above and possibly skip on a few slides — write one loop that touches every shape in every slide, and run it last.
+
 Quality-Control Requirements
 Before returning the presentation, inspect every slide and confirm:
 - All original text is present.
@@ -117,7 +122,8 @@ Before returning the presentation, inspect every slide and confirm:
 - Every image is horizontally centered within its column, with no leftover space bunched on one side.
 - The logo appears on every slide.
 - Fonts and colors are consistent.
-- Body-text size was computed per slide using the sizing procedure above (not eyeballed), and no body text box relies on auto-shrink alone to avoid overflow.
+- Body-text size was computed per slide using the sizing procedure above (not eyeballed) — auto-shrink is a backstop, not the primary mechanism.
+- The Final Autofit Safety Pass ran and every text-bearing shape on every slide has auto_size = MSO_AUTO_SIZE.TEXT_TO_FIT_SHAPE set, with no shape skipped.
 - The real-world example is clearly distinct.
 - Slide numbers are present, tucked close to the true bottom-right corner, and their bounding box does not intersect the real-world-example callout (or the logo, or any image).
 - The finished deck opens normally in Microsoft PowerPoint.
