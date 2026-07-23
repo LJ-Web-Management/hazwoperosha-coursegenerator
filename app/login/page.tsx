@@ -73,10 +73,6 @@ function LoginForm() {
       <div className="flex flex-col gap-5 px-8 pb-8">
         <div className="flex flex-col items-center gap-3 text-center">
           <Image src="/brand/hazwoper-logo.png" alt="Hazwoper Osha Training LLC" width={168} height={31} priority />
-          <div>
-            <h1 className="text-xl font-semibold">Course Generator</h1>
-            <p className="mt-1 text-sm text-zinc-500">Enter the shared password to continue.</p>
-          </div>
         </div>
 
         <div className="flex flex-col gap-1.5">
